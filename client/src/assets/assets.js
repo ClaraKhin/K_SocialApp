@@ -1,4 +1,4 @@
-import logo from './logo.svg'
+import logo from './ConnectifyLogo.png'
 import sample_cover from './sample_cover.jpg'
 import sample_profile from './sample_profile.jpg'
 import bgImage from './bgImage.png'
@@ -6,7 +6,7 @@ import group_users from './group_users.png'
 import { Home, MessageCircle, Search, UserIcon, Users } from 'lucide-react'
 import sponsored_img from './sponsored_img.png'
 
-export const assets = {
+const assets = {
     logo,
     sample_cover,
     sample_profile,
@@ -262,7 +262,7 @@ export const dummyMessagesData = [
         "createdAt": "2025-07-25T10:44:12.753Z",
         "updatedAt": "2025-07-25T10:44:12.753Z",
     },
-        {
+    {
         "_id": "6878cc2817a54e4d3748010c",
         "from_user_id": "user_2zdFoZib5lNr614LgkONdD8WG32",
         "to_user_id": "user_2zwZSCMRXQ9GaEEVLgm6akQo96i",
@@ -294,3 +294,5 @@ export const dummyFollowingData = [
 export const dummyPendingConnectionsData = [
     dummyUserData
 ]
+
+export default assets;

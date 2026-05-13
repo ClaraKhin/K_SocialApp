@@ -15,7 +15,12 @@ const Login = () => {
       {/* Left side - Branding */}
 
       <div className="flex-1 flex flex-col items-start justify-between p-6 md:p-10 lg:pl-40">
-        <img src={assets.logo} alt="Logo" className="h-12 object-contain" />
+        <div className="flex items-center">
+          <img src={assets.logo} alt="Logo" className="h-12 object-contain" />
+          <p className="text-xl font-bold text-indigo-500 md:text-xl">
+            Connectify
+          </p>
+        </div>
         <div>
           <div className="flex items-center gap-3 mb-4 max-md:mt-10">
             <img
@@ -23,6 +28,7 @@ const Login = () => {
               alt="Group Users"
               className="h-8 md:h-10"
             />
+
             <div>
               <div className="flex items-center gap-1 mb-1">
                 {Array(5)

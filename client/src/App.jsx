@@ -14,19 +14,19 @@ import Layout from "./pages/Layout";
 const App = () => {
   const { user } = useUser();
   return (
-    <>
-      <Routes>
-        <Route path="/" element={!user ? <Login /> : <Layout />} /> 
-        <Route path="/feed" element={<Feed />} />
-        <Route path="/messages" element={<Messages />} />
-        <Route path="/messages/:userId" element={<Chatbox />} />
-        <Route path="/connections" element={<Connections />} />
-        <Route path="/discover" element={<Discover />} />
-        <Route path="/profile" element={<Profile />} />
-        <Route path="/profile/:profileId" element={<Profile />} />
-        <Route path="/create-post" element={<CreatePost />} />
-      </Routes>
-    </>
+    <Routes>
+      <Route path="/" element={!user ? <Login /> : <Layout />}>
+        <Route index element={<Feed />} />
+        <Route path="feed" element={<Feed />} />
+        <Route path="messages" element={<Messages />} />
+        <Route path="messages/:userId" element={<Chatbox />} />
+        <Route path="connections" element={<Connections />} />
+        <Route path="discover" element={<Discover />} />
+        <Route path="profile" element={<Profile />} />
+        <Route path="profile/:profileId" element={<Profile />} />
+        <Route path="create-post" element={<CreatePost />} />
+      </Route>
+    </Routes>
   );
 };
 

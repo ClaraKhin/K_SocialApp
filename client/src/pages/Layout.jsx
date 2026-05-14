@@ -3,6 +3,7 @@ import SideBar from "../components/SideBar";
 import { Outlet } from "react-router-dom";
 import { X, Menu } from "lucide-react";
 import { dummyUserData } from "../assets/assets";
+import Loading from "../components/Loading";
 
 const Layout = () => {
   const user = dummyUserData; // Replace with actual user data from Clerk
@@ -11,8 +12,8 @@ const Layout = () => {
 
   return user ? (
     <div className="w-full min-h-screen flex">
-      <SideBar />
-      <div className="flex-1 bg-slate-50 ">
+      <SideBar isSidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
+      <div className="flex-1 bg-[#eeeeee] ">
         <Outlet />
       </div>
       {sidebarOpen ? (
@@ -28,7 +29,7 @@ const Layout = () => {
       )}
     </div>
   ) : (
-    <h1>Loading...</h1>
+    <Loading />
   );
 };
 

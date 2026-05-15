@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { ArrowLeft, TextIcon, Upload } from "lucide-react";
+import { ArrowLeft, TextIcon, Upload, Sparkle } from "lucide-react";
+import { toast } from "react-hot-toast";
 
 const StoryModal = ({ setShowModal, fetchStories }) => {
   const bgColors = [
@@ -72,7 +73,7 @@ const StoryModal = ({ setShowModal, fetchStories }) => {
                 className="object-contain max-h-full w-full object-cover object-center"
               />
             ) : (
-              <video 
+              <video
                 src={previewUrl}
                 className="object-contain max-h-full w-full object-cover object-center"
                 controls
@@ -121,6 +122,18 @@ const StoryModal = ({ setShowModal, fetchStories }) => {
             <Upload size={20} /> Photo/Video
           </label>
         </div>
+        <button
+          onClick={() =>
+            toast.promise(handleCreateStory(), {
+              loading: "Saving...",
+              success: <p>Story Added</p>,
+              error: (error) => <p>{error.message}</p>,
+            })
+          }
+          className="flex items-center justify-center gap-2 text-white py-3 mt-4 w-full rounded bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 active:scale-95 transition cursor-pointer"
+        >
+          <Sparkle size={20} /> Create Story
+        </button>
       </div>
     </div>
   );

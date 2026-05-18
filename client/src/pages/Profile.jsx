@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { dummyUserData, dummyPostsData } from "../assets/assets";
 import { useParams } from "react-router-dom";
 import Loading from "../components/Loading";
+import UserProfileInfo from "../components/UserProfileInfo";
 
 const Profile = () => {
   const { profileId } = useParams();
@@ -37,7 +38,7 @@ const Profile = () => {
           </div>
 
           {/* UserInfo */}
-          
+          <UserProfileInfo user={user} posts={posts} profileId={profileId} />
         </div>
       </div>
     </div>

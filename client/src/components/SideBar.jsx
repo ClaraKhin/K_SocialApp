@@ -6,14 +6,15 @@ import { CirclePlus, LogOut } from "lucide-react";
 import MenuItems from "./MenuItems";
 import { UserButton, useClerk } from "@clerk/react";
 
-const SideBar = ({ sidebarOpen, setSidebarOpen }) => {
+const SideBar = ({ sidebarOpen, isSidebarOpen, setSidebarOpen }) => {
   const navigate = useNavigate();
   const user = dummyUserData;
   const { signOut } = useClerk();
+  const isOpen = sidebarOpen ?? isSidebarOpen;
   return (
     <div
-      className={`w-60 xl:w-72 bg-white p-4 border-r border-gray-200 flex flex-col justify-between items-center max-sm:absolute top-0 bottom-0 z-20 ${
-        sidebarOpen ? "translate-x-0" : "max-sm:-translate-x-full"
+      className={`w-60 xl:w-72 shrink-0 bg-white p-4 border-r border-gray-200 flex flex-col justify-between items-center overflow-y-auto sm:sticky sm:top-0 sm:h-screen max-sm:fixed max-sm:left-0 max-sm:top-0 max-sm:bottom-0 z-20 ${
+        isOpen ? "translate-x-0" : "max-sm:-translate-x-full"
       } transition-all duration-300 ease-in-out`}
     >
       <div className="w-full">

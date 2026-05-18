@@ -89,7 +89,7 @@ const Connections = () => {
                 <img
                   src={user.profile_picture}
                   alt=""
-                  className="rounded-full w-12 h-12 shadow-md mx-auto"
+                  className="rounded-full w-12 h-12 shadow-md mx-auto object-cover object-top"
                 />
                 <div className="flex-1">
                   <p className="font-medium text-slate-700">{user.full_name}</p>

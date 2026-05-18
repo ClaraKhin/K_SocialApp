@@ -27,7 +27,7 @@ const RecentMessages = () => {
             <img
               src={message.from_user_id.profile_picture}
               alt=""
-              className="w-8 h-8 rounded-full"
+              className="w-8 h-8 rounded-full object-cover object-top"
             />
             <div className="w-full">
               <div className="flex justify-between">

@@ -6,7 +6,7 @@ import { useNavigate } from "react-router-dom";
 const Messages = () => {
   const navigate = useNavigate();
   return (
-    <div className="min-h-screen relative bg-slate-50">
+    <div className="min-h-screen relative bg-[#EEEEEE]">
       <div className="max-w-6xl mx-auto p-6">
         {/* Title */}
         <div className="mb-8">

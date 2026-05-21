@@ -4,6 +4,74 @@ import User from "../models/User.js";
 // Create a client to send and receive events
 export const inngest = new Inngest({ id: "connectify-app" });
 
+const getPrimaryEmail = (userData) => {
+    const primaryEmail =
+        userData.email_addresses?.find(
+            (email) => email.id === userData.primary_email_address_id
+        ) ?? userData.email_addresses?.[0];
+
+    return primaryEmail?.email_address;
+};
+
+const buildFullName = ({ first_name, last_name, id }) => {
+    const fullName = [first_name, last_name].filter(Boolean).join(" ").trim();
+    return fullName || `user-${id.slice(-6)}`;
+};
+
+const buildUsernameBase = (email, id) => {
+    const normalized = email
+        .split("@")[0]
+        .toLowerCase()
+        .replace(/[^a-z0-9._]/g, "");
+
+    return normalized || `user${id.slice(-6)}`;
+};
+
+const resolveUniqueUsername = async (baseUsername, currentUserId) => {
+    let candidate = baseUsername;
+    let suffix = 1;
+
+    while (true) {
+        const existingUser = await User.findOne({ username: candidate });
+
+        if (!existingUser || existingUser._id === currentUserId) {
+            return candidate;
+        }
+
+        candidate = `${baseUsername}${suffix}`;
+        suffix += 1;
+    }
+};
+
+const upsertUserFromClerk = async (userData) => {
+    const email = getPrimaryEmail(userData);
+
+    if (!email) {
+        throw new Error(`No email address found for Clerk user ${userData.id}`);
+    }
+
+    const existingUser = await User.findById(userData.id);
+    const username =
+        existingUser?.username ??
+        await resolveUniqueUsername(buildUsernameBase(email, userData.id), userData.id);
+
+    await User.findByIdAndUpdate(
+        userData.id,
+        {
+            _id: userData.id,
+            email,
+            full_name: buildFullName(userData),
+            profile_picture: userData.image_url ?? "",
+            username,
+        },
+        {
+            new: true,
+            upsert: true,
+            setDefaultsOnInsert: true,
+        }
+    );
+};
+
 //Inggest function to save user data to database
 const syncUserCreation = inngest.createFunction(
     {
@@ -11,24 +79,8 @@ const syncUserCreation = inngest.createFunction(
         triggers: [{ event: "clerk/user.created" }],
     },
     async ({ event }) => {
-        const { id, first_name, last_name, email_address, image_url } = event.data;
-
-        let email = email_address[0].email_address;
-        let username = email.split("@")[0];
-
-        const user = await User.findOne({ username });
-
-        if (user) {
-            username = username + Math.floor(Math.random() * 1000);
-        }
-
-        await User.create({
-            _id: id,
-            email,
-            full_name: `${first_name} ${last_name}`,
-            profile_picture: image_url,
-            username,
-        });
+        await upsertUserFromClerk(event.data);
+        console.log(`[inngest] Synced created Clerk user ${event.data.id}`);
     }
 );
 
@@ -40,14 +92,8 @@ const syncUserUpdation = inngest.createFunction(
         triggers: [{ event: "clerk/user.updated" }],
     },
     async ({ event }) => {
-        const { id, first_name, last_name, email_address, image_url } = event.data;
-        const updatedUserData = {
-            email: email_address[0].email_address,
-            full_name: `${first_name} ${last_name}`,
-            profile_picture: image_url,
-
-        }
-        await User.findByIdAndUpdate(id, updatedUserData);
+        await upsertUserFromClerk(event.data);
+        console.log(`[inngest] Synced updated Clerk user ${event.data.id}`);
     }
 );
 
@@ -60,6 +106,7 @@ const syncUserDeletion = inngest.createFunction(
     async ({ event }) => {
         const { id } = event.data;
         await User.findByIdAndDelete(id);
+        console.log(`[inngest] Deleted Clerk user ${id}`);
     }
 );
 

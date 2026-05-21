@@ -51,11 +51,24 @@ const syncUserUpdation = inngest.createFunction(
     }
 );
 
+//Delete User
+const syncUserDeletion = inngest.createFunction(
+    {
+        id: "delete-user-from-clerk",
+        triggers: [{ event: "clerk/user.deleted" }],
+    },
+    async ({ event }) => {
+        const { id } = event.data;
+        await User.findByIdAndDelete(id);
+    }
+);
+
 
 //Inggest function 
 
 // Create an empty array where we'll export future Inngest functions
 export const functions = [
     syncUserCreation,
-    syncUserUpdation
+    syncUserUpdation,
+    syncUserDeletion
 ];

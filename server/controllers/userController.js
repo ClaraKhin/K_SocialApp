@@ -1,5 +1,7 @@
 import User from "../models/User";
-
+import fs from "fs";
+import imageKit from "../configs/imageKit";
+import { response } from "express";
 
 // Get user data using userId
 export const getUserData = async (req, res) => {
@@ -40,7 +42,44 @@ export const updateUserData = async (req, res) => {
         const profile = req.files.profile && req.files.profile[0]
         const cover = req.files.cover && req.files.cover[0]
 
-        
+        if (profile) {
+            const buffer = fs.readFileSync(profile.path);
+            const respond = await imageKit.upload({
+                file: buffer,
+                fileName: profile.originalname,
+
+            })
+
+            const url = imageKit.url(
+                {
+                    path: response.filePath,
+                    transformation: [{ quality: 'auto' }, { format: 'webp' }, { width: '512' }],
+                }
+            )
+
+            updatedData.profile_picture = url;
+        }
+        if (cover) {
+            const buffer = fs.readFileSync(cover.path);
+            const respond = await imageKit.upload({
+                file: buffer,
+                fileName: cover.originalname,
+
+            })
+
+            const url = imageKit.url(
+                {
+                    path: response.filePath,
+                    transformation: [{ quality: 'auto' }, { format: 'webp' }, { width: '1280' }],
+                }
+            )
+
+            updatedData.cover_photo = url;
+        }
+
+        const user = await User.findByIdAndUpdate(useId, updatedData, { new: true });
+
+        return res.json({ success: true, user, message: "User updated successfully" });
 
     }
     catch (error) {

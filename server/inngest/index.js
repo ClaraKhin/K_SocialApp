@@ -115,8 +115,10 @@ const syncUserDeletion = inngest.createFunction(
 
 //Inggest function reminder when a new connection request is added
 const sendNewConnectionReminder = inngest.createFunction(
-    { id: "send-new-connection-reminder" },
-    { event: "app/connection-request" },
+    {
+        id: "send-new-connection-reminder",
+        triggers: [{ event: "app/connection-request" }],
+    },
     async ({ event, step }) => {
         const { connectionId } = event.data;
 
@@ -169,5 +171,4 @@ export const functions = [
     syncUserDeletion,
     sendNewConnectionReminder
 ];
-
 

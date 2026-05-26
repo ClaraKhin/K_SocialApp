@@ -3,6 +3,8 @@ import User from "../models/User.js";
 import Connection from "../models/Connections.js";
 import sendEmail from "../configs/nodeMailer.js";
 import Story from "../models/Story.js";
+import Message from "../models/Message.js";
+
 
 // Create a client to send and receive events
 export const inngest = new Inngest({ id: "connectify-app" });
@@ -132,7 +134,7 @@ const sendNewConnectionReminder = inngest.createFunction(
             <p>You have a new connection request from ${connection.from_user_id.full_name} - @${connection.from_user_id.username}</p>
             <p>Click <a href="${process.env.FRONTEND_URL}/connections" style="color: #10b981;">here</a></p>
             <br />
-            <p>Thanks,<br />PingUp - Stay Connected</p>
+            <p>Thanks,<br />Connectify - Stay Connected</p>
             </div>
             `
             await sendEmail({ to: connection.to_user_id.email, subject, body })
@@ -154,7 +156,7 @@ const sendNewConnectionReminder = inngest.createFunction(
             <p>You have a new connection request from ${connection.from_user_id.full_name} - @${connection.from_user_id.username}</p>
             <p>Click <a href="${process.env.FRONTEND_URL}/connections" style="color: #10b981;">here</a></p>
             <br />
-            <p>Thanks,<br />PingUp - Stay Connected</p>
+            <p>Thanks,<br />Connectify - Stay Connected</p>
             </div>
             `
             await sendEmail({ to: connection.to_user_id.email, subject, body })
@@ -185,11 +187,41 @@ const deleteStory = inngest.createFunction(
     }
 )
 
+const sendNotificationOfUnseenMessages = inngest.createFunction(
+    { id: "send-unseen-messages-notification" },
+    { cron: "TZ=America/New_York 0 9 * * *" },//Every day at 9 AM New York time
+    async ({ event, step }) => {
+        const messages = Message.find({ seen: false }).populate("to_user_id");
+        const unseenCount = {}
+
+        messages.map((message) => {
+            unseenCount[message.to_user_id._id] = (unseenCount[message.to_user_id._id] || 0) + 1;
+        })
+
+        for (const userId in unseenCount) {
+            const user = await User.findById(userId);
+            const subject = `You have ${unseenCount[userId]} unseen messages`;
+            const body = `
+            <div style="font-family: Arial, sans-serif; padding: 20px;">
+            <h2>Hi ${user.full_name}!</h2>
+            <p>You have ${unseenCount[userId]} unseen messages.</p>
+            <p> Click <a href="${process.env.FRONTEND_URL}/messages" style="color: #10b981;">here</a> to view them. </p>
+            <br />
+            <p>Thanks,<br />Connectify - Stay Connected</p>
+            </div>
+            `
+            await sendEmail({ to: user.email, subject, body })
+        }
+        return { message: "Notifications sent." }
+    }
+)
+
 // Create an empty array where we'll export future Inngest functions
 export const functions = [
     syncUserCreation,
     syncUserUpdation,
     syncUserDeletion,
     sendNewConnectionReminder,
-    deleteStory
+    deleteStory,
+    sendNotificationOfUnseenMessages,
 ];

@@ -2,11 +2,12 @@ import { useState } from "react";
 import SideBar from "../components/SideBar";
 import { Outlet } from "react-router-dom";
 import { X, Menu } from "lucide-react";
-import { dummyUserData } from "../assets/assets";
+// import { dummyUserData } from "../assets/assets";
+import { useSelector } from "react-redux";
 import Loading from "../components/Loading";
 
 const Layout = () => {
-  const user = dummyUserData; // Replace with actual user data from Clerk
+  const user = useSelector((state) => state.user.value);
 
   const [sidebarOpen, setSidebarOpen] = useState(false);
 

@@ -1,11 +1,12 @@
 import React from "react";
-import { dummyUserData } from "../assets/assets";
+//import { dummyUserData } from "../assets/assets";
 import { MapPin, UserPlus, MessageCircle, Plus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
 
 const UserCard = ({ user }) => {
   const navigate = useNavigate();
-  const currentUser = dummyUserData;
+  const currentUser = useSelector((state) => state.user.value);
 
   const handleFollow = async () => {};
   const handleConnectionRequest = async () => {};

@@ -80,8 +80,8 @@ export const updateUserData = async (req, res) => {
             full_name: full_name ?? tempUser.full_name,
         };
 
-        const profile = req.files?.profile?.[0];
-        const cover = req.files?.cover?.[0];
+        const profile = req.files?.profile?.[0] ?? req.files?.profile_picture?.[0];
+        const cover = req.files?.cover?.[0] ?? req.files?.cover_photo?.[0];
 
         if (profile) {
             updatedData.profile_picture = await uploadAndTransformImage(profile, [

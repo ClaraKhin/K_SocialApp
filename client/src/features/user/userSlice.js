@@ -1,6 +1,5 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import api from "../../api/axios";
-import { toast } from "react-hot-toast"
 
 
 const initialState = {
@@ -20,19 +19,26 @@ export const fetchUser = createAsyncThunk('user/fetchUser', async (token, { reje
     }
 });
 
-export const updateUser = createAsyncThunk('user/update', async ({ userData, token }) => {
-    const { data } = await api.post('api/user/update', userData, {
-        headers: { Authorization: `Bearer ${token}` },
+export const updateUser = createAsyncThunk(
+    'user/update',
+    async ({ userData, token }, { rejectWithValue }) => {
+        try {
+            const { data } = await api.post('/api/user/update', userData, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
 
-    })
-    if (data.success) {
-        toast.success("User updated successfully");
-        return data.user;
-    } else {
-        toast.error("Failed to update user");
-        return null;
+            if (!data.success) {
+                return rejectWithValue(data.message ?? "Failed to update user");
+            }
+
+            return data.user;
+        } catch (error) {
+            return rejectWithValue(
+                error.response?.data?.message ?? error.message ?? "Failed to update user"
+            );
+        }
     }
-})
+);
 
 const userSlice = createSlice({
     name: "user",
@@ -41,12 +47,14 @@ const userSlice = createSlice({
 
     },
     extraReducers: (builder) => {
-        builder.addCase(fetchUser.fulfilled, (state, action) => {
-            state.value = action.payload;
-        }).addCase(updateUser.fulfilled, (state, action) => {
-            state.value = action.payload;
-        })
+        builder
+            .addCase(fetchUser.fulfilled, (state, action) => {
+                state.value = action.payload;
+            })
+            .addCase(updateUser.fulfilled, (state, action) => {
+                state.value = action.payload;
+            });
     }
-})
+});
 
 export default userSlice.reducer;

@@ -4,6 +4,8 @@ import {
   Heart,
   MessageCircle,
   Share2,
+  SquarePen,
+  Trash2,
   SendIcon,
 } from "lucide-react";
 import moment from "moment";
@@ -20,6 +22,9 @@ const PostCard = ({ post }) => {
   const [commentInput, setCommentInput] = useState("");
   const [showComments, setShowComments] = useState(false);
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+  const [editingCommentId, setEditingCommentId] = useState("");
+  const [editingCommentText, setEditingCommentText] = useState("");
+  const [commentActionId, setCommentActionId] = useState("");
   const currentUser = useSelector((state) => state.user.value);
   const navigate = useNavigate();
   const postsWithHashtags = (post.content || "").replace(
@@ -34,6 +39,16 @@ const PostCard = ({ post }) => {
     setLikes(post.likes_count || []);
     setComments(post.comments || []);
   }, [post.likes_count, post.comments]);
+
+  const resetCommentEditor = () => {
+    setEditingCommentId("");
+    setEditingCommentText("");
+  };
+
+  const syncCommentsState = (nextComments) => {
+    setComments(nextComments || []);
+    setShowComments(true);
+  };
 
   const handleLike = async () => {
     if (!currentUser?._id) {
@@ -90,9 +105,8 @@ const PostCard = ({ post }) => {
 
       if (data.success) {
         toast.success(data.message);
-        setComments(data.comments || []);
+        syncCommentsState(data.comments);
         setCommentInput("");
-        setShowComments(true);
       } else {
         toast.error(data.message);
       }
@@ -101,6 +115,75 @@ const PostCard = ({ post }) => {
       toast.error(error.message);
     } finally {
       setIsSubmittingComment(false);
+    }
+  };
+
+  const startEditingComment = (comment) => {
+    resetCommentEditor();
+    setEditingCommentId(comment._id);
+    setEditingCommentText(comment.text);
+    setShowComments(true);
+  };
+
+  const handleUpdateComment = async (commentId) => {
+    const trimmedComment = editingCommentText.trim();
+
+    if (!trimmedComment) {
+      toast.error("Please write a comment first");
+      return;
+    }
+
+    try {
+      setCommentActionId(commentId);
+      const { data } = await api.post(
+        "/api/post/comment/update",
+        { postId: post._id, commentId, comment: trimmedComment },
+        {
+          headers: { Authorization: `Bearer ${await getToken()}` },
+        }
+      );
+
+      if (data.success) {
+        toast.success(data.message);
+        syncCommentsState(data.comments);
+        resetCommentEditor();
+      } else {
+        toast.error(data.message);
+      }
+    } catch (error) {
+      console.error("Error updating comment:", error.message);
+      toast.error(error.message);
+    } finally {
+      setCommentActionId("");
+    }
+  };
+
+  const handleDeleteComment = async (commentId) => {
+    try {
+      setCommentActionId(commentId);
+      const { data } = await api.post(
+        "/api/post/comment/delete",
+        { postId: post._id, commentId },
+        {
+          headers: { Authorization: `Bearer ${await getToken()}` },
+        }
+      );
+
+      if (data.success) {
+        toast.success(data.message);
+        syncCommentsState(data.comments);
+
+        if (editingCommentId === commentId) {
+          resetCommentEditor();
+        }
+      } else {
+        toast.error(data.message);
+      }
+    } catch (error) {
+      console.error("Error deleting comment:", error.message);
+      toast.error(error.message);
+    } finally {
+      setCommentActionId("");
     }
   };
 
@@ -224,6 +307,10 @@ const PostCard = ({ post }) => {
                   comment.user && typeof comment.user === "object"
                     ? comment.user
                     : null;
+                const commentUserId = commentUser?._id || comment.user;
+                const isOwnComment = commentUserId === currentUser?._id;
+                const isEditing = editingCommentId === comment._id;
+                const isCommentActionLoading = commentActionId === comment._id;
 
                 return (
                   <div
@@ -242,27 +329,93 @@ const PostCard = ({ post }) => {
                       </div>
                     )}
                     <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() =>
-                            commentUser?._id &&
-                            navigate(`/profile/${commentUser._id}`)
-                          }
-                          className="font-medium text-gray-800"
-                        >
-                          {commentUser?.full_name || "Unknown user"}
-                        </button>
-                        <span className="text-xs text-gray-500">
-                          @{commentUser?.username || "unknown"}
-                        </span>
-                        <span className="text-xs text-gray-400">
-                          {moment(comment.createdAt).fromNow()}
-                        </span>
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              commentUser?._id &&
+                              navigate(`/profile/${commentUser._id}`)
+                            }
+                            className="font-medium text-gray-800"
+                          >
+                            {commentUser?.full_name || "Unknown user"}
+                          </button>
+                          <span className="text-xs text-gray-500">
+                            @{commentUser?.username || "unknown"}
+                          </span>
+                          <span className="text-xs text-gray-400">
+                            {moment(comment.createdAt).fromNow()}
+                          </span>
+                        </div>
+
+                        {isOwnComment && (
+                          <div className="flex items-center gap-3 text-xs">
+                            <button
+                              type="button"
+                              onClick={() => startEditingComment(comment)}
+                              className="inline-flex items-center gap-1 text-indigo-600 cursor-pointer"
+                            >
+                              <SquarePen className="w-5 h-5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteComment(comment._id)}
+                              disabled={isCommentActionLoading}
+                              className="inline-flex items-center gap-1 text-red-500 disabled:opacity-60 cursor-pointer"
+                            >
+                              {isCommentActionLoading ? (
+                                "Deleting..."
+                              ) : (
+                                <Trash2 className="w-5 h-5" />
+                              )}
+                            </button>
+                          </div>
+                        )}
                       </div>
-                      <p className="mt-1 text-sm text-gray-700">
-                        {comment.text}
-                      </p>
+
+                      {isEditing ? (
+                        <div className="mt-2 space-y-2">
+                          <input
+                            type="text"
+                            value={editingCommentText}
+                            onChange={(e) =>
+                              setEditingCommentText(e.target.value)
+                            }
+                            onKeyDown={(e) => {
+                              if (
+                                e.key === "Enter" &&
+                                !isCommentActionLoading
+                              ) {
+                                handleUpdateComment(comment._id);
+                              }
+                            }}
+                            className="w-full rounded-full border border-gray-300 px-4 py-2 text-sm outline-none focus:border-indigo-500"
+                          />
+                          <div className="flex items-center gap-2 text-xs ">
+                            <button
+                              type="button"
+                              onClick={() => handleUpdateComment(comment._id)}
+                              disabled={isCommentActionLoading}
+                              className="rounded-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-700 hover:to-purple-800 px-3 py-2 font-medium text-white disabled:opacity-60 cursor-pointer"
+                            >
+                              {isCommentActionLoading ? "Saving..." : "Save"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={resetCommentEditor}
+                              disabled={isCommentActionLoading}
+                              className="rounded-full border border-gray-300 px-3 py-2 font-medium text-gray-600 disabled:opacity-60 cursor-pointer"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="mt-1 text-sm text-gray-700">
+                          {comment.text}
+                        </p>
+                      )}
                     </div>
                   </div>
                 );

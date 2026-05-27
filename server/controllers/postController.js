@@ -9,6 +9,9 @@ const postPopulateOptions = [
     { path: "comments.user", select: "full_name username profile_picture" },
 ];
 
+const getPopulatedPostById = (postId) =>
+    Post.findById(postId).populate(postPopulateOptions);
+
 const removeTempFile = async (filePath) => {
     if (!filePath) {
         return;
@@ -197,11 +200,91 @@ export const addCommentToPost = async (req, res) => {
         });
         await post.save();
 
-        const updatedPost = await Post.findById(postId).populate(postPopulateOptions);
+        const updatedPost = await getPopulatedPostById(postId);
 
         return res.json({
             success: true,
             message: "Comment added successfully",
+            comments: updatedPost?.comments ?? [],
+            commentsCount: updatedPost?.comments?.length ?? 0,
+        });
+    } catch (error) {
+        console.log(error);
+        return res.json({ success: false, message: error.message });
+    }
+};
+
+export const updateCommentOnPost = async (req, res) => {
+    try {
+        const { userId } = getAuth(req);
+        const { postId, commentId } = req.body;
+        const commentText = req.body?.comment?.trim?.() ?? "";
+
+        if (!commentText) {
+            return res.json({ success: false, message: "Comment cannot be empty" });
+        }
+
+        const post = await Post.findById(postId);
+
+        if (!post) {
+            return res.json({ success: false, message: "Post not found" });
+        }
+
+        const comment = post.comments.id(commentId);
+
+        if (!comment) {
+            return res.json({ success: false, message: "Comment not found" });
+        }
+
+        if (comment.user !== userId) {
+            return res.json({ success: false, message: "You can only edit your own comments" });
+        }
+
+        comment.text = commentText;
+        await post.save();
+
+        const updatedPost = await getPopulatedPostById(postId);
+
+        return res.json({
+            success: true,
+            message: "Comment updated successfully",
+            comments: updatedPost?.comments ?? [],
+            commentsCount: updatedPost?.comments?.length ?? 0,
+        });
+    } catch (error) {
+        console.log(error);
+        return res.json({ success: false, message: error.message });
+    }
+};
+
+export const deleteCommentFromPost = async (req, res) => {
+    try {
+        const { userId } = getAuth(req);
+        const { postId, commentId } = req.body;
+        const post = await Post.findById(postId);
+
+        if (!post) {
+            return res.json({ success: false, message: "Post not found" });
+        }
+
+        const comment = post.comments.id(commentId);
+
+        if (!comment) {
+            return res.json({ success: false, message: "Comment not found" });
+        }
+
+        if (comment.user !== userId) {
+            return res.json({ success: false, message: "You can only delete your own comments" });
+        }
+
+        post.comments.pull(commentId);
+        await post.save();
+
+        const updatedPost = await getPopulatedPostById(postId);
+
+        return res.json({
+            success: true,
+            message: "Comment deleted successfully",
             comments: updatedPost?.comments ?? [],
             commentsCount: updatedPost?.comments?.length ?? 0,
         });

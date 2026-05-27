@@ -4,6 +4,7 @@ import imageKit from "../configs/imageKit.js";
 import Connection from "../models/Connections.js";
 import Post from "../models/Post.js";
 import { inngest } from "../inngest/index.js";
+import { getAuth } from "@clerk/express";
 
 const removeTempFile = async (filePath) => {
     if (!filePath) {
@@ -38,12 +39,12 @@ const uploadAndTransformImage = async (file, transformation) => {
 // Get user data using userId
 export const getUserData = async (req, res) => {
     try {
-        const { userId } = await req.auth();
+        const { userId } = getAuth(req);
         const user = await User.findById(userId);
         if (!user) {
             return res.json({ success: false, message: "User not found" });
         }
-        return res.json({ success: true, data: user });
+        return res.json({ success: true, user });
     } catch (error) {
         console.log(error);
         return res.json({ success: false, message: error.message });
@@ -53,7 +54,7 @@ export const getUserData = async (req, res) => {
 //Update user
 export const updateUserData = async (req, res) => {
     try {
-        const { userId } = await req.auth();
+        const { userId } = getAuth(req);
         let { username, bio, location, full_name } = req.body;
         const tempUser = await User.findById(userId);
 
@@ -111,7 +112,7 @@ export const updateUserData = async (req, res) => {
 //Find Users using username, email, location, name
 export const discoverUsers = async (req, res) => {
     try {
-        const { userId } = await req.auth();
+        const { userId } = getAuth(req);
         const { input } = req.body;
         const allUsers = await User.find({
             $or: [
@@ -134,7 +135,7 @@ export const discoverUsers = async (req, res) => {
 //Follow user
 export const followUser = async (req, res) => {
     try {
-        const { userId } = await req.auth();
+        const { userId } = getAuth(req);
         const { id } = req.body;
 
         const user = await User.findById(userId);
@@ -160,7 +161,7 @@ export const followUser = async (req, res) => {
 //Unfollow user
 export const unfollowUser = async (req, res) => {
     try {
-        const { userId } = await req.auth();
+        const { userId } = getAuth(req);
         const { id } = req.body;
         const user = await User.findById(userId);
         user.following = user.following.filter((user) => user !== id);
@@ -181,7 +182,7 @@ export const unfollowUser = async (req, res) => {
 export const sendConnectionRequest = async (req, res) => {
     try {
 
-        const { userId } = await req.auth();
+        const { userId } = getAuth(req);
         const { id } = req.body;
 
         //check if user has sent more than 20 connection requests in the last 24 hours
@@ -230,7 +231,7 @@ export const sendConnectionRequest = async (req, res) => {
 export const getUserConnections = async (req, res) => {
     try {
 
-        const { userId } = await req.auth();
+        const { userId } = getAuth(req);
         const user = await User.findById(userId).populate("connections followers following");
         const connections = user.connections;
         const followers = user.followers;
@@ -251,7 +252,7 @@ export const getUserConnections = async (req, res) => {
 export const acceptConnectionRequest = async (req, res) => {
     try {
 
-        const { userId } = await req.auth();
+        const { userId } = getAuth(req);
         const { id } = req.body;
         const connection = await Connection.findOne({
             from_user_id: id, to_user_id: userId

@@ -2,6 +2,7 @@ import imageKit from "../configs/imageKit.js";
 import Post from "../models/Post.js";
 import fs from "fs";
 import User from "../models/User.js";
+import { getAuth } from "@clerk/express";
 
 const removeTempFile = async (filePath) => {
     if (!filePath) {
@@ -41,7 +42,7 @@ const uploadPostImage = async (image) => {
 //Add Post
 export const addPost = async (req, res) => {
     try {
-        const { userId } = await req.auth();
+        const { userId } = getAuth(req);
         const { content, post_type } = req.body;
         const images = req.files ?? [];
 
@@ -69,7 +70,7 @@ export const addPost = async (req, res) => {
 //Get Post
 export const getFeedPosts = async (req, res) => {
     try {
-        const { userId } = await req.auth();
+        const { userId } = getAuth(req);
         const user = await User.findById(userId);
 
         if (!user) {
@@ -89,7 +90,7 @@ export const getFeedPosts = async (req, res) => {
 //Like Post
 export const likePost = async (req, res) => {
     try {
-        const { userId } = await req.auth();
+        const { userId } = getAuth(req);
         const { postId } = req.body;
         const post = await Post.findById(postId);
 

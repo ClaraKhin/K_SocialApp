@@ -1,9 +1,22 @@
-export const protect = async (req, res, next) => {
+import { getAuth } from "@clerk/express";
+
+export const protect = (req, res, next) => {
     try {
-        const { userId } = await req.auth();
+        const auth = getAuth(req, { acceptsToken: "any" });
+        const { userId } = auth;
 
         if (!userId) {
-            return res.status(401).json({ success: false, message: "Unauthorized" });
+            const response = { success: false, message: "Unauthorized" };
+
+            if (process.env.NODE_ENV !== "production") {
+                response.debug = {
+                    hasAuthorizationHeader: Boolean(req.headers.authorization),
+                    tokenType: auth.tokenType ?? null,
+                    isAuthenticated: auth.isAuthenticated ?? false,
+                };
+            }
+
+            return res.status(401).json(response);
         }
 
         return next();

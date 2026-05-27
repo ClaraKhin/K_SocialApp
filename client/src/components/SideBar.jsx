@@ -40,7 +40,7 @@ const SideBar = ({ sidebarOpen, isSidebarOpen, setSidebarOpen }) => {
       <div className="w-full border-t border-gray-200 p-4 px-7 flex items-center justify-between">
         <div className="flex gap-2 items-center cursor-pointer">
           <UserButton />
-          <div className="flex flex-col leading-tight items-center">
+          <div className="flex flex-col leading-tight items-left">
             <h1 className="text-sm font-medium">{user.full_name}</h1>
             <p className="text-xs text-gray-500">@{user.username}</p>
           </div>

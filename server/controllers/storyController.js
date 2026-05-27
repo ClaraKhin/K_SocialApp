@@ -3,12 +3,13 @@ import Story from "../models/Story.js";
 import fs from "fs";
 import User from "../models/User.js";
 import { inngest } from "../inngest/index.js";
+import { getAuth } from "@clerk/express";
 
 //Add Story
 export const addUserStory = async (req, res) => {
     try {
 
-        const { userId } = req.auth();
+        const { userId } = getAuth(req);
         const { content, media_type, background_color } = req.body;
         const media = req.file;
         let media_url = "";
@@ -50,7 +51,7 @@ export const addUserStory = async (req, res) => {
 //Get User Stories
 export const getStories = async (req, res) => {
     try {
-        const { userId } = req.auth();
+        const { userId } = getAuth(req);
         const user = await User.findById(userId);
 
         //User Connections and Followings

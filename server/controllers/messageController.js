@@ -1,6 +1,7 @@
 import imageKit from "../configs/imageKit.js";
 import Message from "../models/Message.js";
 import fs from "fs";
+import { getAuth } from "@clerk/express";
 
 
 //Create an empty object to store server-side event connections
@@ -36,7 +37,7 @@ export const sseController = (req, res) => {
 export const sendMessage = async (req, res) => {
     try {
 
-        const { userId } = req.auth();
+        const { userId } = getAuth(req);
         const { to_user_id, text } = req.body;
         const image = req.file;
         let media_url = "";
@@ -89,7 +90,7 @@ export const sendMessage = async (req, res) => {
 export const getChatMessages = async (req, res) => {
     try {
 
-        const { userId } = req.auth();
+        const { userId } = getAuth(req);
         const { to_user_id } = req.query;
 
         const messages = await Message.find({
@@ -115,7 +116,7 @@ export const getChatMessages = async (req, res) => {
 export const getRecentMessages = async (req, res) => {
     try {
 
-        const { userId } = req.auth();
+        const { userId } = getAuth(req);
         const messages = await Message.find({ to_user_id: userId }).populate("from_user_id to_user_id").sort({ createdAt: -1 });
 
         return res.json({ success: true, data: messages });

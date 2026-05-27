@@ -284,8 +284,8 @@ export const acceptConnectionRequest = async (req, res) => {
 //Get User Profiles
 export const getUserProfiles = async (req, res) => {
     try {
-
-        const { profileId } = req.body;
+        const { userId } = getAuth(req);
+        const profileId = req.body?.profileId ?? req.query?.profileId ?? userId;
         const profile = await User.findById(profileId);
         if (!profile) {
             return res.json({ success: false, message: "User not found" });

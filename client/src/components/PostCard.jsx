@@ -4,6 +4,9 @@ import moment from "moment";
 // import { dummyUserData } from "../assets/assets";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
+import api from "../api/axios";
+import { useAuth } from "@clerk/react";
+import { toast } from "react-hot-toast";
 
 const PostCard = ({ post }) => {
   const [likes, setLikes] = useState(post.likes_count);
@@ -14,7 +17,48 @@ const PostCard = ({ post }) => {
     "<span class='text-indigo-600'>$1</span>"
   );
 
-  const handleLike = async () => {};
+  const { getToken } = useAuth();
+
+  const handleLike = async () => {
+    try {
+      const { data } = await api.post(
+        "/api/post/like",
+        { postId: post._id },
+        {
+          headers: { Authorization: `Bearer ${await getToken()}` },
+        }
+      );
+      if (data.success) {
+        toast.success(data.message);
+        setLikes((prevLikes) =>
+          likes.includes(currentUser._id)
+            ? prevLikes.filter((id) => id !== currentUser._id)
+            : [...prevLikes, currentUser._id]
+        );
+      } else {
+        toast.error(data.message);
+      }
+    } catch (error) {
+      console.error("Error liking post:", error.message);
+      toast.error(error.message);
+    }
+  };
+
+  const handleComment = async () => {
+    try {
+      // Implement comment functionality here
+      const { data } = await api.post(
+        "/api/post/comment",
+        { postId: post._id, comment: "This is a comment" },
+        {
+          headers: { Authorization: `Bearer ${await getToken()}` },
+        }
+      );
+    } catch (error) {
+      console.error("Error commenting on post:", error.message);
+      toast.error(error.message);
+    }
+  };
 
   return (
     <div className="bg-white rounded-xl shadow p-4 space-y-4 w-full max-w-3xl">

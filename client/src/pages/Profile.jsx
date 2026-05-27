@@ -146,7 +146,17 @@ const Profile = () => {
                 ))}
             </div>
           )}
-          
+
+          {/* Likes */}
+          {activeTab === "likes" && (
+            <div className="mt-6 flex flex-col items-center gap-6">
+              {posts
+                .filter((post) => post.likes_count.includes(user._id))
+                .map((post) => (
+                  <PostCard key={post._id} post={post} />
+                ))}
+            </div>
+          )}
         </div>
       </div>
       {/* Edit Profile Modal */}

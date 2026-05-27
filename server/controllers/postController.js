@@ -166,3 +166,19 @@ export const likePost = async (req, res) => {
         return res.json({ success: false, message: error.message });
     }
 };
+
+//Comment on Post (Placeholder)
+// export const commentOnPost = async (req, res) => {
+//     try {
+//         // Implement comment functionality here
+//         const { userId } = getAuth(req);
+//         const { postId, comment } = req.body;
+//         const post = await Post.findById(postId);
+//         if(post.)
+
+//         return res.json({ success: true, message: "Comment added successfully" });
+//     } catch (error) {
+//         console.log(error);
+//         return res.json({ success: false, message: error.message });
+//     }
+// }

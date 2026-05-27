@@ -9,7 +9,7 @@ const PostCard = ({ post }) => {
   const [likes, setLikes] = useState(post.likes_count);
   const currentUser = useSelector((state) => state.user.value);
   const navigate = useNavigate();
-  const postsWithHashtags = post.content.replace(
+  const postsWithHashtags = (post.content || "").replace(
     /(#\w+)/g,
     "<span class='text-indigo-600'>$1</span>"
   );
@@ -48,19 +48,29 @@ const PostCard = ({ post }) => {
         </div>
       )}
 
-      {/* Post Image */}
-      <div className="grid grid-cols-2 gap-2 cursor-pointer">
-        {post.image_urls.map((img, index) => (
-          <img
-            src={img}
-            key={index}
-            alt=""
-            className={`w-full h-48 object-cover rounded-lg ${
-              post.image_urls.length === 1 && "col-span-2 h-auto"
-            }`}
-          />
-        ))}
-      </div>
+      {/* Post Media */}
+      {post.image_urls.length > 0 && (
+        <div className="grid grid-cols-2 gap-2 cursor-pointer">
+          {post.image_urls.map((img, index) => (
+            <img
+              src={img}
+              key={index}
+              alt=""
+              className={`w-full h-48 object-cover rounded-lg ${
+                post.image_urls.length === 1 && "col-span-2 h-auto"
+              }`}
+            />
+          ))}
+        </div>
+      )}
+
+      {post.video_url && (
+        <video
+          src={post.video_url}
+          controls
+          className="w-full max-h-[32rem] rounded-lg bg-black"
+        />
+      )}
 
       {/* Post Actions */}
       <div className="flex items-center gap-4 text-gray-600 text-sm pt-2 border-t border-gray-300">

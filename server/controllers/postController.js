@@ -39,12 +39,53 @@ const uploadPostImage = async (image) => {
     }
 };
 
+const uploadPostVideo = async (video) => {
+    try {
+        const response = await imageKit.files.upload({
+            file: fs.createReadStream(video.path),
+            fileName: video.originalname,
+            folder: "posts",
+        });
+
+        const src = response.url ?? response.filePath;
+        if (!src) {
+            throw new Error("ImageKit upload did not return a file URL");
+        }
+
+        return response.url ?? imageKit.helper.buildSrc({
+            src,
+            urlEndpoint: process.env.IMAGEKIT_URL_ENDPOINT,
+        });
+    } finally {
+        await removeTempFile(video.path);
+    }
+};
+
 //Add Post
 export const addPost = async (req, res) => {
     try {
         const { userId } = getAuth(req);
-        const { content, post_type } = req.body;
-        const images = req.files ?? [];
+        const content = req.body?.content?.trim?.() ?? "";
+        const images = req.files?.images ?? [];
+        const video = req.files?.video?.[0] ?? null;
+
+        if (!content && !images.length && !video) {
+            return res.json({ success: false, message: "Please add text, images, or a video" });
+        }
+
+        if (images.length && video) {
+            return res.json({ success: false, message: "Please upload either images or one video" });
+        }
+
+        if (images.some((image) => !image.mimetype?.startsWith("image/"))) {
+            await Promise.all(images.map((image) => removeTempFile(image.path)));
+            return res.json({ success: false, message: "Only image files are allowed in the images field" });
+        }
+
+        if (video && !video.mimetype?.startsWith("video/")) {
+            await removeTempFile(video.path);
+            return res.json({ success: false, message: "Only video files are allowed in the video field" });
+        }
 
         let image_urls = [];
         if (images.length) {
@@ -53,10 +94,23 @@ export const addPost = async (req, res) => {
             );
         }
 
+        let video_url = "";
+        if (video) {
+            video_url = await uploadPostVideo(video);
+        }
+
+        let post_type = "text";
+        if (video_url) {
+            post_type = content ? "text_with_video" : "video";
+        } else if (image_urls.length) {
+            post_type = content ? "text_with_image" : "image";
+        }
+
         await Post.create({
             user: userId,
             content,
             image_urls,
+            video_url,
             post_type,
         });
 

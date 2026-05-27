@@ -109,9 +109,9 @@ const Profile = () => {
           {activeTab === "media" && (
             <div className="flex flex-wrap mt-6 max-w-6xl">
               {posts
-                .filter((post) => post.image_urls.length > 0 )
+                .filter((post) => post.image_urls.length > 0 || post.video_url)
                 .map((post) => (
-                  <>
+                  <div key={post._id}>
                     {post.image_urls.map((image, index) => (
                       <Link
                         target="_blank"
@@ -129,7 +129,20 @@ const Profile = () => {
                         </p>
                       </Link>
                     ))}
-                  </>
+
+                    {post.video_url && (
+                      <div className="relative group">
+                        <video
+                          src={post.video_url}
+                          controls
+                          className="w-64 aspect-video object-cover bg-black"
+                        />
+                        <p className="absolute bottom-0 right-0 text-xs p-1 px-3 backdrop-blur-xl text-white opacity-0 group-hover:opacity-100 transition duration-300">
+                          Posted {moment(post.createdAt).fromNow()}
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 ))}
             </div>
           )}

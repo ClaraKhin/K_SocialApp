@@ -2,28 +2,54 @@ import { useState } from "react";
 // import { dummyUserData } from "../assets/assets";
 import { X, Image } from "lucide-react";
 import { toast } from "react-hot-toast";
-import {useSelector} from "react-redux";
+import { useSelector } from "react-redux";
+import { useAuth } from "@clerk/react";
+import api from "../api/axios";
+import { useNavigate } from "react-router-dom";
 
 const CreatePost = () => {
   const [content, setContent] = useState("");
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   const user = useSelector((state) => state.user.value);
-  const handleSubmit = async () => {
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-    }, 1000);
-    if (!content) {
-      toast.error("Please enter some content");
-      return;
-    }
+  const { getToken } = useAuth();
 
-    toast.success("Post Created Successfully");
-    console.log(content, images);
-    setContent("");
-    setImages([]);
+  const handleSubmit = async () => {
+    if (!images.length && !content) {
+      return toast.error("Please add at least one image or text");
+    }
+    setLoading(true);
+    const postType =
+      images.length && content
+        ? "text_with_image"
+        : images.length
+        ? "image"
+        : "text";
+    try {
+      const formData = new FormData();
+      formData.append("content", content);
+      formData.append("post_type", postType);
+      images.map((image) => {
+        formData.append("images", image);
+      });
+      const { data } = await api.post("/api/post/add", formData, {
+        headers: { Authorization: `Bearer ${await getToken()}` },
+      });
+      if (data.success) {
+        navigate("/");
+        toast.success(data.message);
+        
+      } else {
+        console.log(data.message);
+        throw new Error(data.message);
+      }
+    } catch (err) {
+      console.log(err.message);
+      throw new Error(err.message);
+    }
+    setLoading(false);
   };
 
   return (

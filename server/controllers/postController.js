@@ -4,6 +4,11 @@ import fs from "fs";
 import User from "../models/User.js";
 import { getAuth } from "@clerk/express";
 
+const postPopulateOptions = [
+    { path: "user" },
+    { path: "comments.user", select: "full_name username profile_picture" },
+];
+
 const removeTempFile = async (filePath) => {
     if (!filePath) {
         return;
@@ -133,7 +138,9 @@ export const getFeedPosts = async (req, res) => {
 
         //User connections and followings
         const userIds = [userId, ...user.connections, ...user.following];
-        const posts = await Post.find({ user: { $in: userIds } }).populate("user").sort({ createdAt: -1 });
+        const posts = await Post.find({ user: { $in: userIds } })
+            .populate(postPopulateOptions)
+            .sort({ createdAt: -1 });
         return res.json({ success: true, posts });
     } catch (error) {
         console.log(error);
@@ -167,18 +174,39 @@ export const likePost = async (req, res) => {
     }
 };
 
-//Comment on Post (Placeholder)
-// export const commentOnPost = async (req, res) => {
-//     try {
-//         // Implement comment functionality here
-//         const { userId } = getAuth(req);
-//         const { postId, comment } = req.body;
-//         const post = await Post.findById(postId);
-//         if(post.)
+//Comment on Post
+export const addCommentToPost = async (req, res) => {
+    try {
+        const { userId } = getAuth(req);
+        const { postId } = req.body;
+        const comment = req.body?.comment?.trim?.() ?? "";
 
-//         return res.json({ success: true, message: "Comment added successfully" });
-//     } catch (error) {
-//         console.log(error);
-//         return res.json({ success: false, message: error.message });
-//     }
-// }
+        if (!comment) {
+            return res.json({ success: false, message: "Comment cannot be empty" });
+        }
+
+        const post = await Post.findById(postId);
+
+        if (!post) {
+            return res.json({ success: false, message: "Post not found" });
+        }
+
+        post.comments.push({
+            user: userId,
+            text: comment,
+        });
+        await post.save();
+
+        const updatedPost = await Post.findById(postId).populate(postPopulateOptions);
+
+        return res.json({
+            success: true,
+            message: "Comment added successfully",
+            comments: updatedPost?.comments ?? [],
+            commentsCount: updatedPost?.comments?.length ?? 0,
+        });
+    } catch (error) {
+        console.log(error);
+        return res.json({ success: false, message: error.message });
+    }
+};

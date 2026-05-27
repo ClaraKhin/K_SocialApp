@@ -6,6 +6,11 @@ import Post from "../models/Post.js";
 import { inngest } from "../inngest/index.js";
 import { getAuth } from "@clerk/express";
 
+const postPopulateOptions = [
+    { path: "user" },
+    { path: "comments.user", select: "full_name username profile_picture" },
+];
+
 const removeTempFile = async (filePath) => {
     if (!filePath) {
         return;
@@ -291,7 +296,9 @@ export const getUserProfiles = async (req, res) => {
             return res.json({ success: false, message: "User not found" });
         }
 
-        const posts = await Post.find({ user: profileId }).populate("user");
+        const posts = await Post.find({ user: profileId })
+            .populate(postPopulateOptions)
+            .sort({ createdAt: -1 });
 
         return res.json({ success: true, profile, posts });
 

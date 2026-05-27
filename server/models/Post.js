@@ -1,5 +1,11 @@
 import mongoose from 'mongoose';
 
+const commentSchema = new mongoose.Schema({
+    user: { type: String, ref: "User", required: true },
+    text: { type: String, required: true, trim: true },
+    createdAt: { type: Date, default: Date.now },
+}, { _id: true });
+
 const postSchema = new mongoose.Schema({
     user: { type: String, ref: "User", required: true },
     content: { type: String, default: "" },
@@ -8,6 +14,7 @@ const postSchema = new mongoose.Schema({
     post_type: { type: String, enum: ['text', 'image', 'text_with_image', 'video', 'text_with_video'], required: true },
     likes_count: [{ type: String, ref: "User" }],
     comments_count: [{ type: String, ref: "User" }],
+    comments: { type: [commentSchema], default: [] },
 }, { timestamps: true, minimize: false });
 
 const Post = mongoose.model('Post', postSchema);

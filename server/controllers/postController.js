@@ -165,11 +165,13 @@ export const likePost = async (req, res) => {
         if (post.likes_count.includes(userId)) {
             post.likes_count = post.likes_count.filter(user => user !== userId);
             await post.save();
-            return res.json({ success: true, message: "Post unliked" });
+            const updatedPost = await getPopulatedPostById(postId);
+            return res.json({ success: true, message: "Post unliked", post: updatedPost });
         } else {
             post.likes_count.push(userId);
             await post.save();
-            return res.json({ success: true, message: "Post liked" });
+            const updatedPost = await getPopulatedPostById(postId);
+            return res.json({ success: true, message: "Post liked", post: updatedPost });
         }
     } catch (error) {
         console.log(error);
@@ -205,6 +207,7 @@ export const addCommentToPost = async (req, res) => {
         return res.json({
             success: true,
             message: "Comment added successfully",
+            post: updatedPost,
             comments: updatedPost?.comments ?? [],
             commentsCount: updatedPost?.comments?.length ?? 0,
         });
@@ -248,6 +251,7 @@ export const updateCommentOnPost = async (req, res) => {
         return res.json({
             success: true,
             message: "Comment updated successfully",
+            post: updatedPost,
             comments: updatedPost?.comments ?? [],
             commentsCount: updatedPost?.comments?.length ?? 0,
         });
@@ -285,6 +289,7 @@ export const deleteCommentFromPost = async (req, res) => {
         return res.json({
             success: true,
             message: "Comment deleted successfully",
+            post: updatedPost,
             comments: updatedPost?.comments ?? [],
             commentsCount: updatedPost?.comments?.length ?? 0,
         });

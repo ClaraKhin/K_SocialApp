@@ -16,7 +16,7 @@ import api from "../api/axios";
 import { useAuth } from "@clerk/react";
 import { toast } from "react-hot-toast";
 
-const PostCard = ({ post }) => {
+const PostCard = ({ post, onPostUpdate }) => {
   const [likes, setLikes] = useState(post.likes_count || []);
   const [comments, setComments] = useState(post.comments || []);
   const [commentInput, setCommentInput] = useState("");
@@ -50,6 +50,16 @@ const PostCard = ({ post }) => {
     setShowComments(true);
   };
 
+  const syncPostState = (updatedPost) => {
+    if (!updatedPost) {
+      return;
+    }
+
+    setLikes(updatedPost.likes_count || []);
+    setComments(updatedPost.comments || []);
+    onPostUpdate?.(updatedPost);
+  };
+
   const handleLike = async () => {
     if (!currentUser?._id) {
       toast.error("Please sign in to like posts");
@@ -66,11 +76,15 @@ const PostCard = ({ post }) => {
       );
       if (data.success) {
         toast.success(data.message);
-        setLikes((prevLikes) =>
-          prevLikes.includes(currentUser._id)
-            ? prevLikes.filter((id) => id !== currentUser._id)
-            : [...prevLikes, currentUser._id]
-        );
+        if (data.post) {
+          syncPostState(data.post);
+        } else {
+          setLikes((prevLikes) =>
+            prevLikes.includes(currentUser._id)
+              ? prevLikes.filter((id) => id !== currentUser._id)
+              : [...prevLikes, currentUser._id]
+          );
+        }
       } else {
         toast.error(data.message);
       }
@@ -106,6 +120,7 @@ const PostCard = ({ post }) => {
       if (data.success) {
         toast.success(data.message);
         syncCommentsState(data.comments);
+        syncPostState(data.post);
         setCommentInput("");
       } else {
         toast.error(data.message);
@@ -146,6 +161,7 @@ const PostCard = ({ post }) => {
       if (data.success) {
         toast.success(data.message);
         syncCommentsState(data.comments);
+        syncPostState(data.post);
         resetCommentEditor();
       } else {
         toast.error(data.message);
@@ -172,6 +188,7 @@ const PostCard = ({ post }) => {
       if (data.success) {
         toast.success(data.message);
         syncCommentsState(data.comments);
+        syncPostState(data.post);
 
         if (editingCommentId === commentId) {
           resetCommentEditor();

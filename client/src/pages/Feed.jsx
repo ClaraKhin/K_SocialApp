@@ -14,6 +14,14 @@ const Feed = () => {
   const [loading, setLoading] = useState(true);
   const { getToken } = useAuth();
 
+  const handlePostUpdate = (updatedPost) => {
+    setFeeds((prevFeeds) =>
+      prevFeeds.map((post) =>
+        post._id === updatedPost._id ? updatedPost : post
+      )
+    );
+  };
+
   const fetchFeeds = async () => {
     try {
       setLoading(true);
@@ -43,7 +51,11 @@ const Feed = () => {
         <StoriesBar />
         <div className="p-4 space-y-6">
           {feeds.map((post) => (
-            <PostCard key={post._id} post={post} />
+            <PostCard
+              key={post._id}
+              post={post}
+              onPostUpdate={handlePostUpdate}
+            />
           ))}
         </div>
       </div>

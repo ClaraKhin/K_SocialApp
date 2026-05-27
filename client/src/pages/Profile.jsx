@@ -20,6 +20,14 @@ const Profile = () => {
   const [activeTab, setActiveTab] = useState("posts");
   const [showEdit, setShowEdit] = useState(false);
 
+  const handlePostUpdate = (updatedPost) => {
+    setPosts((prevPosts) =>
+      prevPosts.map((post) =>
+        post._id === updatedPost._id ? updatedPost : post
+      )
+    );
+  };
+
   const fetchUser = async (profileId) => {
     const token = await getToken();
     try {
@@ -100,7 +108,11 @@ const Profile = () => {
           {activeTab === "posts" && (
             <div className="mt-6 flex flex-col items-center gap-6">
               {posts.map((post) => (
-                <PostCard key={post._id} post={post} />
+                <PostCard
+                  key={post._id}
+                  post={post}
+                  onPostUpdate={handlePostUpdate}
+                />
               ))}
             </div>
           )}
@@ -153,7 +165,11 @@ const Profile = () => {
               {posts
                 .filter((post) => post.likes_count.includes(user._id))
                 .map((post) => (
-                  <PostCard key={post._id} post={post} />
+                  <PostCard
+                    key={post._id}
+                    post={post}
+                    onPostUpdate={handlePostUpdate}
+                  />
                 ))}
             </div>
           )}

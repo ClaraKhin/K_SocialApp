@@ -21,7 +21,8 @@ const Chatbox = () => {
   const [image, setImage] = useState(null);
   const messagesEndRef = useRef(null); //ref to bottom of chatbox for scrolling
   const connections = useSelector((state) => state.connections.connections);
-  const user = connections.find((connection) => connection._id === userId) ?? null;
+  const user =
+    connections.find((connection) => connection._id === userId) ?? null;
 
   const sendMessage = async () => {
     try {
@@ -74,7 +75,9 @@ const Chatbox = () => {
   //   }
 
   //   const eventSource = new EventSource(
-  //     `${import.meta.env.VITE_API_URL || "http://localhost:4000"}/api/message/${clerkUser.id}`
+  //     `${import.meta.env.VITE_API_URL || "http://localhost:4000"}/api/message/${
+  //       clerkUser.id
+  //     }`
   //   );
 
   //   eventSource.onmessage = (event) => {

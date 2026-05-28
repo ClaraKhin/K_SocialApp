@@ -32,7 +32,7 @@ const Notification = ({ message, t }) => {
           </div>
         </div>
       </div>
-      <div className="flex border-l border-gray-300">
+      <div className="flex ">
         <button
           onClick={() => {
             navigate(`/messages/${sender?._id}`);

@@ -83,21 +83,11 @@ const App = () => {
         if (pathnameRef.current === `/messages/${message.from_user_id._id}`) {
           dispatch(addMessage(message));
         } else {
-          // toast.custom((t) => <Notification t={t} message={message} />),
-          //   { position: "bottom-right", duration: 20000 };
-
-          toast(
-            (message.from_user_id.name || "New Message") + ": " + message.text,
-            {
-              icon: "📩",
-              position: "bottom-right",
-              duration: 20000,
-            }
-          );
+          toast.custom((t) => <Notification t={t} message={message} />, {
+            position: "bottom-right",
+            duration: 10000,
+          });
         }
-        return () => {
-          eventSource.close();
-        };
       };
     }
   }, [user, dispatch]);

@@ -22,7 +22,7 @@ const Login = () => {
           </p>
         </div>
         <div>
-          <div className="flex items-center gap-3 mb-4 max-md:mt-10">
+          {/* <div className="flex items-center gap-3 mb-4 max-md:mt-10">
             <img
               src={assets.group_users}
               alt="Group Users"
@@ -39,7 +39,7 @@ const Login = () => {
               </div>
               <p>Used by 12k+ users</p>
             </div>
-          </div>
+          </div> */}
           <h1 className="text-3xl md:text-6xl md:pb-2 font-bold bg-gradient-to-r from-indigo-950 to-indigo-800 bg-clip-text text-transparent">
             More than just friends truly connect
           </h1>

@@ -1,10 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   dummyConnectionsData as connections,
   dummyFollowersData as followers,
   dummyFollowingData as following,
   dummyPendingConnectionsData as pendingConnections,
 } from "../assets/assets";
+
+import { useSelector, useDispatch } from "react-redux";
+import { useAuth } from "@clerk/react";
 import {
   Users,
   UserPlus,
@@ -13,9 +16,17 @@ import {
   MessageSquare,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { fetchConnections } from "../features/connections/connectionsSlice";
+import api from "../api/axios";
+import { toast } from "react-hot-toast";
 
 const Connections = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const { getToken } = useAuth();
+  const { connections, followers, following, pendingConnections } = useSelector(
+    (state) => state.connections
+  );
   const [currentTab, setCurrentTab] = useState("followers");
   const dataArray = [
     { label: "followers", value: followers, icon: Users },
@@ -27,6 +38,54 @@ const Connections = () => {
     },
     { label: "connections", value: connections, icon: UserPlus },
   ];
+
+  const handleUnfollow = async (userId) => {
+    try {
+      const { data } = await api.post(
+        "/api/user/unfollow",
+        { id: userId },
+        {
+          headers: { Authorization: `Bearer ${await getToken()}` },
+        }
+      );
+      if (data.success) {
+        toast.success(data.message);
+        dispatch(fetchConnections(await getToken()));
+      } else {
+        toast.error(data.message || "Failed to unfollow user");
+      }
+    } catch (error) {
+      console.error("Failed to unfollow user:", error);
+      toast.error(error.message);
+    }
+  };
+
+  const acceptConnection = async (userId) => {
+    try {
+      const { data } = await api.post(
+        "/api/user/accept",
+        { id: userId },
+        {
+          headers: { Authorization: `Bearer ${await getToken()}` },
+        }
+      );
+      if (data.success) {
+        toast.success(data.message);
+        dispatch(fetchConnections(await getToken()));
+      } else {
+        toast.error(data.message);
+      }
+    } catch (error) {
+      console.error("Failed to accept connection:", error);
+      toast.error(error.message);
+    }
+  };
+
+  useEffect(() => {
+    getToken().then((token) => {
+      dispatch(fetchConnections(token));
+    });
+  }, [dispatch, getToken]);
 
   return (
     <div className="min-h-screen bg-[#EEEEEE]">
@@ -107,12 +166,18 @@ const Connections = () => {
                       </button>
                     }
                     {currentTab === "following" && (
-                      <button className="w-full p-2 text-sm rounded bg-[#d6e6f2] hover:bg-[#b9d7ea] text-black active:scale-95 transition cursor-pointer">
+                      <button
+                        onClick={() => handleUnfollow(user._id)}
+                        className="w-full p-2 text-sm rounded bg-[#d6e6f2] hover:bg-[#b9d7ea] text-black active:scale-95 transition cursor-pointer"
+                      >
                         Unfollow
                       </button>
                     )}
                     {currentTab === "pending" && (
-                      <button className="w-full p-2 text-sm rounded bg-[#d6e6f2] hover:bg-[#b9d7ea] text-black active:scale-95 transition cursor-pointer">
+                      <button
+                        onClick={() => acceptConnection(user._id)}
+                        className="w-full p-2 text-sm rounded bg-[#d6e6f2] hover:bg-[#b9d7ea] text-black active:scale-95 transition cursor-pointer"
+                      >
                         Accept
                       </button>
                     )}

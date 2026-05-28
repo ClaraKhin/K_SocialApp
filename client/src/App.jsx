@@ -13,6 +13,7 @@ import Layout from "./pages/Layout";
 import { Toaster } from "react-hot-toast";
 import { useDispatch } from "react-redux";
 import { fetchUser } from "./features/user/userSlice";
+import { fetchConnections } from "./features/connections/connectionsSlice";
 
 const getTokenExpiry = (token) => {
   try {
@@ -43,7 +44,7 @@ const App = () => {
       if (!isLoaded || !isSignedIn || !user) {
         return;
       }
-
+ 
       let token = await getToken({ skipCache: true });
       const expiry = token ? getTokenExpiry(token) : null;
       const nowInSeconds = Math.floor(Date.now() / 1000);
@@ -55,6 +56,7 @@ const App = () => {
 
       if (token) {
         dispatch(fetchUser(token));
+        dispatch(fetchConnections(token));
       }
     };
 

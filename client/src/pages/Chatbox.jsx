@@ -68,34 +68,34 @@ const Chatbox = () => {
     };
   }, [dispatch, getToken, userId]);
 
-  useEffect(() => {
-    if (!clerkUser?.id) {
-      return;
-    }
+  // useEffect(() => {
+  //   if (!clerkUser?.id) {
+  //     return;
+  //   }
 
-    const eventSource = new EventSource(
-      `${import.meta.env.VITE_API_URL || "http://localhost:4000"}/api/message/${clerkUser.id}`
-    );
+  //   const eventSource = new EventSource(
+  //     `${import.meta.env.VITE_API_URL || "http://localhost:4000"}/api/message/${clerkUser.id}`
+  //   );
 
-    eventSource.onmessage = (event) => {
-      try {
-        const message = JSON.parse(event.data);
-        if (message?.from_user_id?._id === userId) {
-          dispatch(addMessage(message));
-        }
-      } catch (error) {
-        console.error("Failed to parse incoming message:", error);
-      }
-    };
+  //   eventSource.onmessage = (event) => {
+  //     try {
+  //       const message = JSON.parse(event.data);
+  //       if (message?.from_user_id?._id === userId) {
+  //         dispatch(addMessage(message));
+  //       }
+  //     } catch (error) {
+  //       console.error("Failed to parse incoming message:", error);
+  //     }
+  //   };
 
-    eventSource.onerror = (error) => {
-      console.error("Message stream error:", error);
-    };
+  //   eventSource.onerror = (error) => {
+  //     console.error("Message stream error:", error);
+  //   };
 
-    return () => {
-      eventSource.close();
-    };
-  }, [clerkUser?.id, dispatch, userId]);
+  //   return () => {
+  //     eventSource.close();
+  //   };
+  // }, [clerkUser?.id, dispatch, userId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

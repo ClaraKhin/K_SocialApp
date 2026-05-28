@@ -1,5 +1,5 @@
-import { useEffect } from "react";
-import { Routes, Route } from "react-router-dom";
+import { useEffect, useRef } from "react";
+import { Routes, Route, useLocation } from "react-router-dom";
 import Feed from "./pages/Feed";
 import Messages from "./pages/Messages";
 import Connections from "./pages/Connections";
@@ -10,10 +10,12 @@ import CreatePost from "./pages/CreatePost";
 import Login from "./pages/Login";
 import { useUser, useAuth } from "@clerk/react";
 import Layout from "./pages/Layout";
-import { Toaster } from "react-hot-toast";
+import { Toaster, toast } from "react-hot-toast";
 import { useDispatch } from "react-redux";
 import { fetchUser } from "./features/user/userSlice";
 import { fetchConnections } from "./features/connections/connectionsSlice";
+import { addMessage } from "./features/messages/messagesSlice";
+import Notification from "./components/Notification";
 
 const getTokenExpiry = (token) => {
   try {
@@ -36,6 +38,8 @@ const getTokenExpiry = (token) => {
 
 const App = () => {
   const { user } = useUser();
+  const pathname = useLocation();
+  const pathnameRef = useRef(pathname);
   const { getToken, isLoaded, isSignedIn } = useAuth();
   const dispatch = useDispatch();
 
@@ -44,7 +48,7 @@ const App = () => {
       if (!isLoaded || !isSignedIn || !user) {
         return;
       }
- 
+
       let token = await getToken({ skipCache: true });
       const expiry = token ? getTokenExpiry(token) : null;
       const nowInSeconds = Math.floor(Date.now() / 1000);
@@ -62,6 +66,41 @@ const App = () => {
 
     fetchData();
   }, [user, getToken, isLoaded, isSignedIn, dispatch]);
+
+  useEffect(() => {
+    pathnameRef.current = pathname;
+  }, [pathname]);
+
+  useEffect(() => {
+    if (user) {
+      const eventSource = new EventSource(
+        `${
+          import.meta.env.VITE_BASE_URL || "http://localhost:4000"
+        }/api/message/${user.id}`
+      );
+      eventSource.onmessage = (event) => {
+        const message = JSON.parse(event.data);
+        if (pathnameRef.current === `/messages/${message.from_user_id._id}`) {
+          dispatch(addMessage(message));
+        } else {
+          // toast.custom((t) => <Notification t={t} message={message} />),
+          //   { position: "bottom-right", duration: 20000 };
+
+          toast(
+            (message.from_user_id.name || "New Message") + ": " + message.text,
+            {
+              icon: "📩",
+              position: "bottom-right",
+              duration: 20000,
+            }
+          );
+        }
+        return () => {
+          eventSource.close();
+        };
+      };
+    }
+  }, [user, dispatch]);
 
   return (
     <>

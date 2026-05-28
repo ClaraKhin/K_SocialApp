@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect } from "react";
-import { dummyMessagesData, dummyUserData } from "../assets/assets";
 import { toast } from "react-hot-toast";
 import { ImageIcon, SendHorizonal } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
@@ -13,25 +12,15 @@ import { useAuth } from "@clerk/react";
 import { useParams } from "react-router-dom";
 
 const Chatbox = () => {
-  const { messages } = useSelector((state) => state.messages.messages);
+  const messages = useSelector((state) => state.messages.messages);
   const { userId } = useParams();
   const { getToken } = useAuth();
   const dispatch = useDispatch();
   const [text, setText] = useState("");
   const [image, setImage] = useState(null);
-  const [user, setUser] = useState(null);
   const messagesEndRef = useRef(null); //ref to bottom of chatbox for scrolling
-  const { connections } = useSelector((state) => state.connections.connections);
-
-  const fetchUserMessages = async () => {
-    try {
-      const token = await getToken();
-      dispatch(fetchMessages({ token, userId }));
-    } catch (error) {
-      console.error("Failed to fetch messages:", error.message);
-      toast.error(error.message);
-    }
-  };
+  const connections = useSelector((state) => state.connections.connections);
+  const user = connections.find((connection) => connection._id === userId) ?? null;
 
   const sendMessage = async () => {
     try {
@@ -50,7 +39,7 @@ const Chatbox = () => {
       if (data.success) {
         setText("");
         setImage(null);
-        dispatch(addMessage(data.message));
+        dispatch(addMessage(data.data));
       } else {
         throw new Error(data.message || "Failed to send message");
       }
@@ -61,18 +50,22 @@ const Chatbox = () => {
   };
 
   useEffect(() => {
+    const fetchUserMessages = async () => {
+      try {
+        const token = await getToken();
+        dispatch(fetchMessages({ token, userId }));
+      } catch (error) {
+        console.error("Failed to fetch messages:", error.message);
+        toast.error(error.message);
+      }
+    };
+
     fetchUserMessages();
+
     return () => {
       dispatch(resetMessages());
     };
-  }, [userId]);
-
-  useEffect(() => {
-    if (connections.length > 0) {
-      const user = connections.find((connection) => connection._id === userId);
-      setUser(user);
-    }
-  }, [connections, userId]); //refetch messages when connections change as user might have accepted/removed connection request
+  }, [dispatch, getToken, userId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

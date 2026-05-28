@@ -6,8 +6,8 @@ const initialState = {
 }
 
 export const fetchMessages = createAsyncThunk('messages/fetchMessages', async ({ token, userId }) => {
-
-    const { data } = await api.post('/api/message/get', { to_user_id: userId }, {
+    const { data } = await api.get('/api/message/get', {
+        params: { to_user_id: userId },
         headers: { Authorization: `Bearer ${token}` }
     })
     return data.success ? data : null;
@@ -30,7 +30,7 @@ const messagesSlice = createSlice({
     extraReducers: (builder) => {
         builder.addCase(fetchMessages.fulfilled, (state, action) => {
             if (action.payload) {
-                state.messages = action.payload.messages;
+                state.messages = action.payload.data;
             }
         })
     }

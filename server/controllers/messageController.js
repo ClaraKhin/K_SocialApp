@@ -7,6 +7,41 @@ import { getAuth } from "@clerk/express";
 //Create an empty object to store server-side event connections
 const connections = {};
 
+const removeTempFile = async (filePath) => {
+    if (!filePath) {
+        return;
+    }
+
+    await fs.promises.unlink(filePath).catch(() => null);
+};
+
+const uploadMessageImage = async (image) => {
+    try {
+        const response = await imageKit.files.upload({
+            file: fs.createReadStream(image.path),
+            fileName: image.originalname,
+            folder: "messages",
+        });
+
+        const src = response.url ?? response.filePath;
+        if (!src) {
+            throw new Error("ImageKit upload did not return a file URL");
+        }
+
+        return imageKit.helper.buildSrc({
+            src,
+            urlEndpoint: response.url ? undefined : process.env.IMAGEKIT_URL_ENDPOINT,
+            transformation: [
+                { quality: "auto" },
+                { format: "webp" },
+                { width: "1280" },
+            ],
+        });
+    } finally {
+        await removeTempFile(image.path);
+    }
+};
+
 //controller function for the server-side endpoints
 export const sseController = (req, res) => {
     const { userId } = req.params;
@@ -45,21 +80,7 @@ export const sendMessage = async (req, res) => {
         let message_type = image ? "image" : "text";
 
         if (message_type === "image") {
-            const fileBuffer = fs.readFileSync(image.path);
-
-            const response = await imageKit.upload({
-                file: fileBuffer,
-                fileName: image.originalname,
-            });
-
-            media_url = imageKit.url({
-                path: response.filePath,
-                transformation: [
-                    { quality: "auto" },
-                    { format: "webp" },
-                    { width: "1280" },
-                ]
-            })
+            media_url = await uploadMessageImage(image);
         }
 
         const message = await Message.create({
@@ -70,8 +91,6 @@ export const sendMessage = async (req, res) => {
             media_url,
         })
 
-        return res.json({ success: true, data: message });
-
         //Send the message to the recipient if they are connected to SSE
         const messageWithUserData = await Message.findById(message._id).populate("from_user_id");
 
@@ -79,6 +98,8 @@ export const sendMessage = async (req, res) => {
             connections[to_user_id].write(`data: ${JSON.stringify(messageWithUserData)}\n\n`);
 
         }
+
+        return res.json({ success: true, data: message });
 
     } catch (error) {
         console.log(error);

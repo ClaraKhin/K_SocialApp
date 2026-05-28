@@ -8,13 +8,14 @@ import {
   resetMessages,
 } from "../features/messages/messagesSlice";
 import api from "../api/axios";
-import { useAuth } from "@clerk/react";
+import { useAuth, useUser } from "@clerk/react";
 import { useParams } from "react-router-dom";
 
 const Chatbox = () => {
   const messages = useSelector((state) => state.messages.messages);
   const { userId } = useParams();
   const { getToken } = useAuth();
+  const { user: clerkUser } = useUser();
   const dispatch = useDispatch();
   const [text, setText] = useState("");
   const [image, setImage] = useState(null);
@@ -66,6 +67,35 @@ const Chatbox = () => {
       dispatch(resetMessages());
     };
   }, [dispatch, getToken, userId]);
+
+  useEffect(() => {
+    if (!clerkUser?.id) {
+      return;
+    }
+
+    const eventSource = new EventSource(
+      `${import.meta.env.VITE_API_URL || "http://localhost:4000"}/api/message/${clerkUser.id}`
+    );
+
+    eventSource.onmessage = (event) => {
+      try {
+        const message = JSON.parse(event.data);
+        if (message?.from_user_id?._id === userId) {
+          dispatch(addMessage(message));
+        }
+      } catch (error) {
+        console.error("Failed to parse incoming message:", error);
+      }
+    };
+
+    eventSource.onerror = (error) => {
+      console.error("Message stream error:", error);
+    };
+
+    return () => {
+      eventSource.close();
+    };
+  }, [clerkUser?.id, dispatch, userId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

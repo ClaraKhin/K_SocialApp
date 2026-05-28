@@ -2,17 +2,62 @@ import { useState, useEffect } from "react";
 import { dummyRecentMessagesData } from "../assets/assets";
 import { Link } from "react-router-dom";
 import moment from "moment";
+import { useUser, useAuth } from "@clerk/react";
+import api from "../api/axios";
+import { toast } from "react-hot-toast";
 
 const RecentMessages = () => {
   const [messages, setMessages] = useState([]);
+  const { user } = useUser();
+  const { getToken } = useAuth();
 
-  const fetchMessages = async () => {
-    setMessages(dummyRecentMessagesData);
+  const fetchRecentMessages = async () => {
+    try {
+      const token = await getToken();
+      const { data } = await api.get("/api/user/recent-messages", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (data.success) {
+        const messagesData = Array.isArray(data.data) ? data.data : [];
+        const groupedMessages = messagesData.reduce((acc, message) => {
+          const senderId = message.from_user_id._id;
+          if (
+            !acc[senderId] ||
+            new Date(message.createdAt) > new Date(acc[senderId].createdAt)
+          ) {
+            acc[senderId] = message;
+          }
+          return acc;
+        }, {});
+
+        const sortMessages = Object.values(groupedMessages).sort(
+          (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+        );
+        setMessages(sortMessages);
+      } else {
+        toast.error(data.message || "Failed to fetch recent messages");
+      }
+    } catch (error) {
+      console.error("Failed to fetch recent messages:", error.message);
+      toast.error(
+        error.message || "An error occurred while fetching recent messages"
+      );
+    }
   };
 
   useEffect(() => {
-    fetchMessages();
-  }, []);
+    if (!user) {
+      return;
+    }
+
+    fetchRecentMessages();
+    const refreshInterval = setInterval(fetchRecentMessages, 30000); // Refresh every 30 seconds
+
+    return () => clearInterval(refreshInterval);
+  }, [user]); // Only run when user changes
 
   return (
     <div className="bg-white max-w-xs mt-4 p-4 min-h-20 rounded-md shadow text-xs text-slate-800">

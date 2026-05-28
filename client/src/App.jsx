@@ -38,8 +38,8 @@ const getTokenExpiry = (token) => {
 
 const App = () => {
   const { user } = useUser();
-  const pathname = useLocation();
-  const pathnameRef = useRef(pathname);
+  const location = useLocation();
+  const pathnameRef = useRef(location.pathname);
   const { getToken, isLoaded, isSignedIn } = useAuth();
   const dispatch = useDispatch();
 
@@ -68,28 +68,42 @@ const App = () => {
   }, [user, getToken, isLoaded, isSignedIn, dispatch]);
 
   useEffect(() => {
-    pathnameRef.current = pathname;
-  }, [pathname]);
+    pathnameRef.current = location.pathname;
+  }, [location.pathname]);
 
   useEffect(() => {
-    if (user) {
-      const eventSource = new EventSource(
-        `${
-          import.meta.env.VITE_BASE_URL || "http://localhost:4000"
-        }/api/message/${user.id}`
-      );
-      eventSource.onmessage = (event) => {
-        const message = JSON.parse(event.data);
-        if (pathnameRef.current === `/messages/${message.from_user_id._id}`) {
-          dispatch(addMessage(message));
-        } else {
-          toast.custom((t) => <Notification t={t} message={message} />, {
-            position: "bottom-right",
-            duration: 10000,
-          });
-        }
-      };
+    if (!user) {
+      return;
     }
+
+    const eventSource = new EventSource(
+      `${
+        import.meta.env.VITE_BASE_URL || "http://localhost:4000"
+      }/api/message/${user.id}`
+    );
+
+    eventSource.onmessage = (event) => {
+      if (!event.data) {
+        return;
+      }
+
+      const message = JSON.parse(event.data);
+      const isActiveChat =
+        pathnameRef.current === `/messages/${message.from_user_id?._id}`;
+
+      if (isActiveChat) {
+        dispatch(addMessage(message));
+      }
+
+      toast.custom((t) => <Notification t={t} message={message} />, {
+        position: "bottom-right",
+        duration: 10000,
+      });
+    };
+
+    return () => {
+      eventSource.close();
+    };
   }, [user, dispatch]);
 
   return (

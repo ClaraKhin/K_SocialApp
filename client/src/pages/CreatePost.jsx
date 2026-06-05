@@ -7,6 +7,8 @@ import { useAuth } from "@clerk/react";
 import api from "../api/axios";
 import { useNavigate } from "react-router-dom";
 
+const SERVER_UPLOAD_LIMIT = 4 * 1024 * 1024;
+
 const uploadVideoDirectly = async (video, token) => {
   const { data } = await api.get("/api/post/imagekit-auth", {
     headers: { Authorization: `Bearer ${token}` },
@@ -14,6 +16,10 @@ const uploadVideoDirectly = async (video, token) => {
 
   if (!data.success) {
     throw new Error(data.message || "Failed to prepare video upload");
+  }
+
+  if (!data.publicKey || !data.urlEndpoint) {
+    throw new Error("ImageKit upload configuration is missing");
   }
 
   const formData = new FormData();
@@ -34,12 +40,29 @@ const uploadVideoDirectly = async (video, token) => {
     }
   );
 
-  const result = await response.json();
+  const responseText = await response.text();
+  const result = responseText
+    ? (() => {
+        try {
+          return JSON.parse(responseText);
+        } catch {
+          return { message: responseText };
+        }
+      })()
+    : {};
   if (!response.ok) {
     throw new Error(result?.message || "Video upload failed");
   }
 
-  return result.url || result.filePath;
+  if (result.url) {
+    return result.url;
+  }
+
+  if (result.filePath) {
+    return `${data.urlEndpoint.replace(/\/$/, "")}${result.filePath}`;
+  }
+
+  throw new Error("ImageKit upload did not return a video URL");
 };
 
 const CreatePost = () => {
@@ -106,8 +129,16 @@ const CreatePost = () => {
       });
 
       if (video) {
-        const videoUrl = await uploadVideoDirectly(video, token);
-        formData.append("video_url", videoUrl);
+        try {
+          const videoUrl = await uploadVideoDirectly(video, token);
+          formData.append("video_url", videoUrl);
+        } catch (error) {
+          if (video.size > SERVER_UPLOAD_LIMIT) {
+            throw error;
+          }
+
+          formData.append("video", video);
+        }
       }
 
       const { data } = await api.post("/api/post/add", formData, {
@@ -122,6 +153,7 @@ const CreatePost = () => {
       }
     } catch (err) {
       toast.error(err.response?.data?.message || err.message);
+      console.error(err);
     } finally {
       setLoading(false);
     }

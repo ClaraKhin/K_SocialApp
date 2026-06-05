@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
-import { dummyUserData, dummyPostsData } from "../assets/assets";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useSearchParams } from "react-router-dom";
 import Loading from "../components/Loading";
 import UserProfileInfo from "../components/UserProfileInfo";
 import PostCard from "../components/PostCard";
@@ -15,6 +14,8 @@ const Profile = () => {
   const currentUser = useSelector((state) => state.user.value);
   const { getToken } = useAuth();
   const { profileId } = useParams();
+  const [searchParams] = useSearchParams();
+  const targetPostId = searchParams.get("post");
   const [user, setUser] = useState(null);
   const [posts, setPosts] = useState([]);
   const [activeTab, setActiveTab] = useState("posts");
@@ -59,6 +60,20 @@ const Profile = () => {
       fetchUser(currentUser._id);
     }
   }, [profileId, currentUser]);
+
+  useEffect(() => {
+    if (!targetPostId || !posts.length) {
+      return;
+    }
+
+    const timeoutId = setTimeout(() => {
+      document
+        .getElementById(`post-${targetPostId}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 100);
+
+    return () => clearTimeout(timeoutId);
+  }, [targetPostId, posts]);
 
   return user ? (
     <div className="relative h-full overflow-y-scroll no-scrollbar bg-[#EEEEEE] p-6 ">
@@ -108,11 +123,17 @@ const Profile = () => {
           {activeTab === "posts" && (
             <div className="mt-6 flex flex-col items-center gap-6">
               {posts.map((post) => (
-                <PostCard
+                <div
                   key={post._id}
-                  post={post}
-                  onPostUpdate={handlePostUpdate}
-                />
+                  id={`post-${post._id}`}
+                  className={`w-full flex justify-center rounded-xl transition ${
+                    targetPostId === post._id
+                      ? "ring-4 ring-indigo-200 ring-offset-4 ring-offset-[#EEEEEE]"
+                      : ""
+                  }`}
+                >
+                  <PostCard post={post} onPostUpdate={handlePostUpdate} />
+                </div>
               ))}
             </div>
           )}

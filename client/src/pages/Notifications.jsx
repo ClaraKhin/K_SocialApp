@@ -101,7 +101,8 @@ const Notifications = () => {
     const type = getNotificationType(notification);
 
     if (type !== "message") {
-      navigate("/profile");
+      const postId = notification.post?._id || notification.post;
+      navigate(postId ? `/profile?post=${postId}` : "/profile");
       return;
     }
 

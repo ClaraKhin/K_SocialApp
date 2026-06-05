@@ -23,7 +23,13 @@ const Notification = ({ message, notification, t }) => {
       ? `${sender?.full_name || "Someone"} commented on your post`
       : `${sender?.full_name || "Someone"} sent you a message`;
   const actionLabel = type === "message" ? "Reply" : "View";
-  const actionPath = type === "message" ? `/messages/${sender?._id}` : "/profile";
+  const postId = data?.post?._id || data?.post;
+  const actionPath =
+    type === "message"
+      ? `/messages/${sender?._id}`
+      : postId
+      ? `/profile?post=${postId}`
+      : "/profile";
 
   return (
     <div

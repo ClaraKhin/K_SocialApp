@@ -1,14 +1,36 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import api from "../../api/axios";
 
+export const NOTIFICATIONS_READ_AT_STORAGE_KEY =
+  "connectify_notifications_read_at";
+
+const getStoredReadAt = () => {
+  if (typeof window === "undefined") {
+    return 0;
+  }
+
+  const value = Number(
+    window.localStorage.getItem(NOTIFICATIONS_READ_AT_STORAGE_KEY)
+  );
+
+  return Number.isFinite(value) ? value : 0;
+};
+
 const getNotificationId = (notification) =>
   notification?._id ||
   `${notification?.type || "message"}-${
     notification?.actor?._id || notification?.from_user_id?._id
   }-${notification?.post?._id || ""}-${notification?.createdAt}`;
 
-const normalizeNotification = (notification, readNotificationIds = []) => {
+const normalizeNotification = (
+  notification,
+  readNotificationIds = [],
+  readAt = 0
+) => {
   const id = getNotificationId(notification);
+  const createdAtTime = new Date(notification?.createdAt || 0).getTime();
+  const wasAlreadyViewed =
+    readAt > 0 && Number.isFinite(createdAtTime) && createdAtTime <= readAt;
 
   return {
     ...notification,
@@ -16,6 +38,7 @@ const normalizeNotification = (notification, readNotificationIds = []) => {
     isUnread:
       !notification?.seen &&
       !notification?.read &&
+      !wasAlreadyViewed &&
       !readNotificationIds.includes(id),
   };
 };
@@ -118,6 +141,7 @@ const mapPostNotifications = (posts, currentUserId, userMap) =>
 const initialState = {
   items: [],
   readNotificationIds: [],
+  readAt: getStoredReadAt(),
   loading: false,
   error: null,
 };
@@ -183,7 +207,11 @@ const notificationsSlice = createSlice({
   initialState,
   reducers: {
     addNotification: (state, action) => {
-      const notification = normalizeNotification(action.payload);
+      const notification = normalizeNotification(
+        action.payload,
+        state.readNotificationIds,
+        state.readAt
+      );
       const notificationId = getNotificationId(notification);
       const existingIndex = state.items.findIndex(
         (item) => getNotificationId(item) === notificationId
@@ -195,7 +223,8 @@ const notificationsSlice = createSlice({
         state.items.unshift(notification);
       }
     },
-    markAllNotificationsRead: (state) => {
+    markAllNotificationsRead: (state, action) => {
+      state.readAt = action.payload || Date.now();
       const ids = state.items.map(getNotificationId).filter(Boolean);
       state.readNotificationIds = Array.from(
         new Set([...state.readNotificationIds, ...ids])
@@ -215,7 +244,11 @@ const notificationsSlice = createSlice({
       .addCase(fetchNotifications.fulfilled, (state, action) => {
         state.loading = false;
         state.items = action.payload.map((notification) =>
-          normalizeNotification(notification, state.readNotificationIds)
+          normalizeNotification(
+            notification,
+            state.readNotificationIds,
+            state.readAt
+          )
         );
       })
       .addCase(fetchNotifications.rejected, (state, action) => {

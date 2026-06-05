@@ -7,6 +7,7 @@ import { Bell, Heart, ImageIcon, Loader2, MessageCircle } from "lucide-react";
 import {
   fetchNotifications,
   markAllNotificationsRead,
+  NOTIFICATIONS_READ_AT_STORAGE_KEY,
 } from "../features/notifications/notificationsSlice";
 
 const getNotificationType = (notification) => {
@@ -59,7 +60,12 @@ const Notifications = () => {
 
   useEffect(() => {
     if (items.some((notification) => notification.isUnread)) {
-      dispatch(markAllNotificationsRead());
+      const readAt = Date.now();
+      window.localStorage.setItem(
+        NOTIFICATIONS_READ_AT_STORAGE_KEY,
+        String(readAt)
+      );
+      dispatch(markAllNotificationsRead(readAt));
     }
   }, [dispatch, items]);
 

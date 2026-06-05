@@ -1,18 +1,35 @@
 import { useEffect, useMemo } from "react";
-import { useAuth } from "@clerk/react";
+import { useAuth, useUser } from "@clerk/react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import moment from "moment";
-import { Bell, ImageIcon, Loader2, MessageCircle } from "lucide-react";
+import { Bell, Heart, ImageIcon, Loader2, MessageCircle } from "lucide-react";
 import {
   fetchNotifications,
   markAllNotificationsRead,
 } from "../features/notifications/notificationsSlice";
 
+const getNotificationType = (notification) => {
+  if (notification.type) {
+    return notification.type;
+  }
+
+  if (notification.text?.toLowerCase().startsWith("liked ")) {
+    return "like";
+  }
+
+  if (notification.comment) {
+    return "comment";
+  }
+
+  return "message";
+};
+
 const Notifications = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { getToken, isLoaded, isSignedIn } = useAuth();
+  const { user } = useUser();
   const { items, loading, error } = useSelector((state) => state.notifications);
 
   const notifications = useMemo(
@@ -33,12 +50,12 @@ const Notifications = () => {
 
       const token = await getToken();
       if (token) {
-        dispatch(fetchNotifications(token));
+        dispatch(fetchNotifications({ token, currentUserId: user?.id }));
       }
     };
 
     loadNotifications();
-  }, [dispatch, getToken, isLoaded, isSignedIn]);
+  }, [dispatch, getToken, isLoaded, isSignedIn, user?.id]);
 
   useEffect(() => {
     if (items.some((notification) => notification.isUnread)) {
@@ -47,6 +64,16 @@ const Notifications = () => {
   }, [dispatch, items]);
 
   const getPreview = (notification) => {
+    const type = getNotificationType(notification);
+
+    if (type === "like") {
+      return notification.text || "Liked your post";
+    }
+
+    if (type === "comment") {
+      return notification.text || "Commented on your post";
+    }
+
     if (notification.message_type === "image") {
       return "Sent you an image";
     }
@@ -54,8 +81,31 @@ const Notifications = () => {
     return notification.text || "Sent you a message";
   };
 
-  const openMessage = (notification) => {
-    const senderId = notification.from_user_id?._id || notification.from_user_id;
+  const getTitle = (notification) => {
+    const type = getNotificationType(notification);
+    const actor = notification.actor || notification.from_user_id;
+    const actorName = actor?.full_name || "Someone";
+
+    if (type === "like") {
+      return `${actorName} liked your post`;
+    }
+
+    if (type === "comment") {
+      return `${actorName} commented on your post`;
+    }
+
+    return `${actorName} sent you a message`;
+  };
+
+  const openNotification = (notification) => {
+    const type = getNotificationType(notification);
+
+    if (type !== "message") {
+      navigate("/profile");
+      return;
+    }
+
+    const senderId = notification.actor?._id || notification.from_user_id?._id;
 
     if (senderId) {
       navigate(`/messages/${senderId}`);
@@ -107,17 +157,16 @@ const Notifications = () => {
               <div className="size-12 mx-auto mb-3 rounded-md bg-slate-100 flex items-center justify-center text-slate-500">
                 <Bell className="w-5 h-5" />
               </div>
-              <p className="font-medium text-slate-800">
-                No notifications yet
-              </p>
+              <p className="font-medium text-slate-800">No notifications yet</p>
               <p className="text-sm text-slate-500">
-                New message notifications will appear here.
+                New messages, likes, and comments will appear here.
               </p>
             </div>
           ) : (
             <div className="divide-y divide-gray-100">
               {notifications.map((notification) => {
-                const sender = notification.from_user_id;
+                const type = getNotificationType(notification);
+                const sender = notification.actor || notification.from_user_id;
                 const senderName = sender?.full_name || "Someone";
                 const senderAvatar = sender?.profile_picture;
 
@@ -125,7 +174,7 @@ const Notifications = () => {
                   <button
                     key={notification._id || notification.createdAt}
                     type="button"
-                    onClick={() => openMessage(notification)}
+                    onClick={() => openNotification(notification)}
                     className="w-full px-6 py-4 text-left flex items-start gap-4 hover:bg-slate-50 transition"
                   >
                     {senderAvatar ? (
@@ -143,7 +192,7 @@ const Notifications = () => {
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <p className="font-medium text-slate-900">
-                          {senderName} sent you a message
+                          {getTitle(notification)}
                         </p>
                         {notification.isUnread && (
                           <span className="px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600 text-xs font-medium">
@@ -162,7 +211,9 @@ const Notifications = () => {
                     </div>
 
                     <span className="size-10 shrink-0 rounded-md bg-[#d6e6f2] text-slate-800 flex items-center justify-center">
-                      {notification.message_type === "image" ? (
+                      {type === "like" ? (
+                        <Heart className="w-4 h-4 text-red-500 fill-red-500" />
+                      ) : notification.message_type === "image" ? (
                         <ImageIcon className="w-4 h-4" />
                       ) : (
                         <MessageCircle className="w-4 h-4" />

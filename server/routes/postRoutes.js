@@ -17,6 +17,7 @@ const postRouter = express.Router();
 
 postRouter.post('/add', protect, upload.fields([
     { name: "images", maxCount: 4 },
+    { name: "video", maxCount: 1 },
 ]), addPost)
 postRouter.get('/imagekit-auth', protect, getImageKitAuth)
 postRouter.get('/feed', protect, getFeedPosts)

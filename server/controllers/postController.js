@@ -27,6 +27,13 @@ const removeTempFile = async (filePath) => {
 
 export const getImageKitAuth = async (_req, res) => {
     try {
+        if (!process.env.IMAGEKIT_PUBLIC_KEY || !process.env.IMAGEKIT_URL_ENDPOINT) {
+            return res.json({
+                success: false,
+                message: "ImageKit public configuration is missing",
+            });
+        }
+
         const authParams = imageKit.helper.getAuthenticationParameters();
 
 
@@ -72,22 +79,45 @@ const uploadPostImage = async (image) => {
     }
 };
 
+const uploadPostVideo = async (video) => {
+    try {
+        const response = await imageKit.files.upload({
+            file: fs.createReadStream(video.path),
+            fileName: video.originalname,
+            folder: "posts",
+        });
+
+        const src = response.url ?? response.filePath;
+        if (!src) {
+            throw new Error("ImageKit upload did not return a file URL");
+        }
+
+        return response.url ?? imageKit.helper.buildSrc({
+            src,
+            urlEndpoint: process.env.IMAGEKIT_URL_ENDPOINT,
+        });
+    } finally {
+        await removeTempFile(video.path);
+    }
+};
+
 
 //Add Post
 export const addPost = async (req, res) => {
     try {
         const { userId } = getAuth(req);
         const content = req.body?.content?.trim?.() ?? "";
-        const video_url = req.body?.video_url?.trim?.() ?? "";
+        let video_url = req.body?.video_url?.trim?.() ?? "";
         const images = req.files?.images ?? [];
+        const video = req.files?.video?.[0] ?? null;
 
 
-        if (!content && !images.length && !video_url) {
+        if (!content && !images.length && !video_url && !video) {
             return res.json({ success: false, message: "Please add text, images, or a video" });
         }
 
 
-        if (images.length && video_url) {
+        if (images.length && (video_url || video)) {
             return res.json({ success: false, message: "Please upload either images or one video" });
         }
 
@@ -97,12 +127,21 @@ export const addPost = async (req, res) => {
             return res.json({ success: false, message: "Only image files are allowed in the images field" });
         }
 
+        if (video && !video.mimetype?.startsWith("video/")) {
+            await removeTempFile(video.path);
+            return res.json({ success: false, message: "Only video files are allowed in the video field" });
+        }
+
 
         let image_urls = [];
         if (images.length) {
             image_urls = await Promise.all(
                 images.map((image) => uploadPostImage(image))
             );
+        }
+
+        if (video && !video_url) {
+            video_url = await uploadPostVideo(video);
         }
 
 

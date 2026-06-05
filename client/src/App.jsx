@@ -16,6 +16,7 @@ import { fetchUser } from "./features/user/userSlice";
 import { fetchConnections } from "./features/connections/connectionsSlice";
 import { addMessage } from "./features/messages/messagesSlice";
 import Notification from "./components/Notification";
+import Notifications from "./pages/Notifications";
 
 const getTokenExpiry = (token) => {
   try {
@@ -114,6 +115,7 @@ const App = () => {
           <Route index element={<Feed />} />
           <Route path="feed" element={<Feed />} />
           <Route path="messages" element={<Messages />} />
+          <Route path="notifications" element={<Notifications />} />
           <Route path="messages/:userId" element={<Chatbox />} />
           <Route path="connections" element={<Connections />} />
           <Route path="discover" element={<Discover />} />

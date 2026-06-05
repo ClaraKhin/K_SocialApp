@@ -4,21 +4,44 @@ import fs from "fs";
 import User from "../models/User.js";
 import { getAuth } from "@clerk/express";
 
+
 const postPopulateOptions = [
     { path: "user" },
     { path: "comments.user", select: "full_name username profile_picture" },
 ];
 
+
 const getPopulatedPostById = (postId) =>
     Post.findById(postId).populate(postPopulateOptions);
+
 
 const removeTempFile = async (filePath) => {
     if (!filePath) {
         return;
     }
 
+
     await fs.promises.unlink(filePath).catch(() => null);
 };
+
+
+export const getImageKitAuth = async (_req, res) => {
+    try {
+        const authParams = imageKit.helper.getAuthenticationParameters();
+
+
+        return res.json({
+            success: true,
+            ...authParams,
+            publicKey: process.env.IMAGEKIT_PUBLIC_KEY,
+            urlEndpoint: process.env.IMAGEKIT_URL_ENDPOINT,
+        });
+    } catch (error) {
+        console.log(error);
+        return res.json({ success: false, message: error.message });
+    }
+};
+
 
 const uploadPostImage = async (image) => {
     try {
@@ -28,10 +51,12 @@ const uploadPostImage = async (image) => {
             folder: "posts",
         });
 
+
         const src = response.url ?? response.filePath;
         if (!src) {
             throw new Error("ImageKit upload did not return a file URL");
         }
+
 
         return imageKit.helper.buildSrc({
             src,
@@ -47,53 +72,31 @@ const uploadPostImage = async (image) => {
     }
 };
 
-const uploadPostVideo = async (video) => {
-    try {
-        const response = await imageKit.files.upload({
-            file: fs.createReadStream(video.path),
-            fileName: video.originalname,
-            folder: "posts",
-        });
-
-        const src = response.url ?? response.filePath;
-        if (!src) {
-            throw new Error("ImageKit upload did not return a file URL");
-        }
-
-        return response.url ?? imageKit.helper.buildSrc({
-            src,
-            urlEndpoint: process.env.IMAGEKIT_URL_ENDPOINT,
-        });
-    } finally {
-        await removeTempFile(video.path);
-    }
-};
 
 //Add Post
 export const addPost = async (req, res) => {
     try {
         const { userId } = getAuth(req);
         const content = req.body?.content?.trim?.() ?? "";
+        const video_url = req.body?.video_url?.trim?.() ?? "";
         const images = req.files?.images ?? [];
-        const video = req.files?.video?.[0] ?? null;
 
-        if (!content && !images.length && !video) {
+
+        if (!content && !images.length && !video_url) {
             return res.json({ success: false, message: "Please add text, images, or a video" });
         }
 
-        if (images.length && video) {
+
+        if (images.length && video_url) {
             return res.json({ success: false, message: "Please upload either images or one video" });
         }
+
 
         if (images.some((image) => !image.mimetype?.startsWith("image/"))) {
             await Promise.all(images.map((image) => removeTempFile(image.path)));
             return res.json({ success: false, message: "Only image files are allowed in the images field" });
         }
 
-        if (video && !video.mimetype?.startsWith("video/")) {
-            await removeTempFile(video.path);
-            return res.json({ success: false, message: "Only video files are allowed in the video field" });
-        }
 
         let image_urls = [];
         if (images.length) {
@@ -102,10 +105,6 @@ export const addPost = async (req, res) => {
             );
         }
 
-        let video_url = "";
-        if (video) {
-            video_url = await uploadPostVideo(video);
-        }
 
         let post_type = "text";
         if (video_url) {
@@ -113,6 +112,7 @@ export const addPost = async (req, res) => {
         } else if (image_urls.length) {
             post_type = content ? "text_with_image" : "image";
         }
+
 
         await Post.create({
             user: userId,
@@ -122,6 +122,7 @@ export const addPost = async (req, res) => {
             post_type,
         });
 
+
         return res.json({ success: true, message: "Post added successfully" });
     } catch (error) {
         console.log(error);
@@ -129,15 +130,18 @@ export const addPost = async (req, res) => {
     }
 };
 
+
 //Get Post
 export const getFeedPosts = async (req, res) => {
     try {
         const { userId } = getAuth(req);
         const user = await User.findById(userId);
 
+
         if (!user) {
             return res.json({ success: false, message: "User not found" });
         }
+
 
         //User connections and followings
         const userIds = [userId, ...user.connections, ...user.following];
@@ -151,6 +155,7 @@ export const getFeedPosts = async (req, res) => {
     }
 };
 
+
 //Like Post
 export const likePost = async (req, res) => {
     try {
@@ -158,9 +163,11 @@ export const likePost = async (req, res) => {
         const { postId } = req.body;
         const post = await Post.findById(postId);
 
+
         if (!post) {
             return res.json({ success: false, message: "Post not found" });
         }
+
 
         if (post.likes_count.includes(userId)) {
             post.likes_count = post.likes_count.filter(user => user !== userId);
@@ -179,6 +186,7 @@ export const likePost = async (req, res) => {
     }
 };
 
+
 //Comment on Post
 export const addCommentToPost = async (req, res) => {
     try {
@@ -186,15 +194,19 @@ export const addCommentToPost = async (req, res) => {
         const { postId } = req.body;
         const comment = req.body?.comment?.trim?.() ?? "";
 
+
         if (!comment) {
             return res.json({ success: false, message: "Comment cannot be empty" });
         }
 
+
         const post = await Post.findById(postId);
+
 
         if (!post) {
             return res.json({ success: false, message: "Post not found" });
         }
+
 
         post.comments.push({
             user: userId,
@@ -202,7 +214,9 @@ export const addCommentToPost = async (req, res) => {
         });
         await post.save();
 
+
         const updatedPost = await getPopulatedPostById(postId);
+
 
         return res.json({
             success: true,
@@ -217,36 +231,46 @@ export const addCommentToPost = async (req, res) => {
     }
 };
 
+
 export const updateCommentOnPost = async (req, res) => {
     try {
         const { userId } = getAuth(req);
         const { postId, commentId } = req.body;
         const commentText = req.body?.comment?.trim?.() ?? "";
 
+
         if (!commentText) {
             return res.json({ success: false, message: "Comment cannot be empty" });
         }
 
+
         const post = await Post.findById(postId);
+
 
         if (!post) {
             return res.json({ success: false, message: "Post not found" });
         }
 
+
         const comment = post.comments.id(commentId);
+
 
         if (!comment) {
             return res.json({ success: false, message: "Comment not found" });
         }
 
+
         if (comment.user !== userId) {
             return res.json({ success: false, message: "You can only edit your own comments" });
         }
 
+
         comment.text = commentText;
         await post.save();
 
+
         const updatedPost = await getPopulatedPostById(postId);
+
 
         return res.json({
             success: true,
@@ -261,30 +285,38 @@ export const updateCommentOnPost = async (req, res) => {
     }
 };
 
+
 export const deleteCommentFromPost = async (req, res) => {
     try {
         const { userId } = getAuth(req);
         const { postId, commentId } = req.body;
         const post = await Post.findById(postId);
 
+
         if (!post) {
             return res.json({ success: false, message: "Post not found" });
         }
 
+
         const comment = post.comments.id(commentId);
+
 
         if (!comment) {
             return res.json({ success: false, message: "Comment not found" });
         }
 
+
         if (comment.user !== userId) {
             return res.json({ success: false, message: "You can only delete your own comments" });
         }
 
+
         post.comments.pull(commentId);
         await post.save();
 
+
         const updatedPost = await getPopulatedPostById(postId);
+
 
         return res.json({
             success: true,
@@ -298,3 +330,6 @@ export const deleteCommentFromPost = async (req, res) => {
         return res.json({ success: false, message: error.message });
     }
 };
+
+
+

@@ -15,6 +15,10 @@ import { useDispatch } from "react-redux";
 import { fetchUser } from "./features/user/userSlice";
 import { fetchConnections } from "./features/connections/connectionsSlice";
 import { addMessage } from "./features/messages/messagesSlice";
+import {
+  addNotification,
+  fetchNotifications,
+} from "./features/notifications/notificationsSlice";
 import Notification from "./components/Notification";
 import Notifications from "./pages/Notifications";
 
@@ -62,6 +66,7 @@ const App = () => {
       if (token) {
         dispatch(fetchUser(token));
         dispatch(fetchConnections(token));
+        dispatch(fetchNotifications(token));
       }
     };
 
@@ -91,6 +96,8 @@ const App = () => {
       const message = JSON.parse(event.data);
       const isActiveChat =
         pathnameRef.current === `/messages/${message.from_user_id?._id}`;
+
+      dispatch(addNotification(message));
 
       if (isActiveChat) {
         dispatch(addMessage(message));

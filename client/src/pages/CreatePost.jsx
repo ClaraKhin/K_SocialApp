@@ -7,6 +7,41 @@ import { useAuth } from "@clerk/react";
 import api from "../api/axios";
 import { useNavigate } from "react-router-dom";
 
+const uploadVideoDirectly = async (video, token) => {
+  const { data } = await api.get("/api/post/imagekit-auth", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!data.success) {
+    throw new Error(data.message || "Failed to prepare video upload");
+  }
+
+  const formData = new FormData();
+  formData.append("file", video);
+  formData.append("fileName", video.name);
+  formData.append("token", data.token);
+  formData.append("expire", data.expire);
+  formData.append("signature", data.signature);
+  formData.append("publicKey", data.publicKey);
+  formData.append("folder", "posts");
+  formData.append("useUniqueFileName", "true");
+
+  const response = await fetch(
+    "https://upload.imagekit.io/api/v1/files/upload",
+    {
+      method: "POST",
+      body: formData,
+    }
+  );
+
+  const result = await response.json();
+  if (!response.ok) {
+    throw new Error(result?.message || "Video upload failed");
+  }
+
+  return result.url || result.filePath;
+};
+
 const CreatePost = () => {
   const [content, setContent] = useState("");
   const [images, setImages] = useState([]);
@@ -57,6 +92,11 @@ const CreatePost = () => {
       : "text";
 
     try {
+      const token = await getToken();
+      if (!token) {
+        throw new Error("Please sign in again to upload this video");
+      }
+
       const formData = new FormData();
       formData.append("content", content.trim());
       formData.append("post_type", postType);
@@ -66,11 +106,12 @@ const CreatePost = () => {
       });
 
       if (video) {
-        formData.append("video", video);
+        const videoUrl = await uploadVideoDirectly(video, token);
+        formData.append("video_url", videoUrl);
       }
 
       const { data } = await api.post("/api/post/add", formData, {
-        headers: { Authorization: `Bearer ${await getToken()}` },
+        headers: { Authorization: `Bearer ${token}` },
       });
 
       if (data.success) {

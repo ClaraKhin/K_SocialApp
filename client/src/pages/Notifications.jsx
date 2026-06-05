@@ -126,7 +126,7 @@ const Notifications = () => {
                 Notifications
               </h1>
               <p className="text-slate-600">
-                All notifications and notification history
+                All notifications
               </p>
             </div>
           </div>
